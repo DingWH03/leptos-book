@@ -1,7 +1,7 @@
 # Summary
 
-- [Introduction](./01_introduction.md)
-- [Getting Started](./getting_started/README.md)
+- [简介](./01_introduction.md)
+- [入门](./getting_started/README.md)
   - [Leptos DX](./getting_started/leptos_dx.md)
   - [The Leptos Community and leptos-* Crates](./getting_started/community_crates.md)
 - [Part 1: Building User Interfaces](./view/README.md)

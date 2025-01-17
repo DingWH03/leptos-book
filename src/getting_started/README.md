@@ -1,15 +1,19 @@
-# Getting Started
+# 入门
 
-There are two basic paths to getting started with Leptos:
+使用 Leptos 框架有下面两种基本途径：
 
-1. **Client-side rendering (CSR) with [Trunk](https://trunkrs.dev/)** - a great option if you just want to make a snappy website with Leptos, or work with a pre-existing server or API.
-   In CSR mode, Trunk compiles your Leptos app to WebAssembly (WASM) and runs it in the browser like a typical Javascript single-page app (SPA). The advantages of Leptos CSR include faster build times and a quicker iterative development cycle, as well as a simpler mental model and more options for deploying your app. CSR apps do come with some disadvantages: initial load times for your end users are slower compared to a server-side rendering approach, and the usual SEO challenges that come along with using a JS single-page app model apply to Leptos CSR apps as well. Also note that, under the hood, an auto-generated snippet of JS is used to load the Leptos WASM bundle, so JS _must_ be enabled on the client device for your CSR app to display properly. As with all software engineering, there are trade-offs here you'll need to consider.
+1. **使用 [Trunk](https://trunkrs.dev/)进行客户端渲染（CSR）** - 如果您只想用 Leptos 快速创建一个轻量网站，或与已有的服务器或 API 一起工作，Trunk 是一个不错的选择。
+   在 CSR 模式下，Trunk 将您的 Leptos 应用程序编译为 WebAssembly (WASM)，并像典型的 Javascript 单页面应用程序 (SPA) 一样在浏览器中运行。
+    Leptos 使用 CSR 的优势包括更快的构建时间和更快的迭代开发周期，以及更简单的开发过程和更多部署应用程序的选项。
+    CSR 应用程序具有以下的缺点: 与服务器端渲染方法相比，最终用户的初始加载时间较慢，并且Leptos CSR 应用会像传统 JS 单页应用模型那样在 SEO 方面带来更多的麻烦。
+    请注意，在底层，会使用自动生成的 JavaScript 代码片段来加载 Leptos 的 WASM 包，因此客户端设备上必须启用 JavaScript，您的 CSR 应用才能正确显示。正如所有软件工程一样，这里也存在需要权衡的取舍。
 
-2. **Full-stack, server-side rendering (SSR) with [`cargo-leptos`](https://github.com/leptos-rs/cargo-leptos)** - SSR is a great option for building CRUD-style websites and custom web apps if you want Rust powering both your frontend and backend.
-   With the Leptos SSR option, your app is rendered to HTML on the server and sent down to the browser; then, WebAssembly is used to instrument the HTML so your app becomes interactive - this process is called 'hydration'. On the server side, Leptos SSR apps integrate closely with your choice of either [Actix-web](https://docs.rs/leptos_actix/latest/leptos_actix/) or [Axum](https://docs.rs/leptos_axum/latest/leptos_axum/) server libraries, so you can leverage those communities' crates to help build out your Leptos server.
-   The advantages of taking the SSR route with Leptos include helping you get the best initial load times and optimal SEO scores for your web app. SSR apps can also dramatically simplify working across the server/client boundary via a Leptos feature called "server functions", which lets you transparently call functions on the server from your client code (more on this feature later). Full-stack SSR isn't all rainbows and butterflies, though - disadvantages include a slower developer iteration loop (because you need to recompile both the server and client when making Rust code changes), as well as some added complexity that comes along with hydration.
+2. **使用 [`cargo-leptos`](https://github.com/leptos-rs/cargo-leptos)进行的全栈的服务端渲染（SSR）** - 如果你想使用 Rust 来同时构建应用程序的前端和后端，那么 SSR 是构建 CRUD 风格网站和自定义 Web 应用程序的绝佳选择。
+   使用 Leptos 服务器渲染的方式，您的应用程序将在服务端被呈现为 HTML，并发送到浏览器来显示；然后，WebAssembly 用于检测 HTML，使应用变得具有交互性 - 此过程称为“hydration”。
+   在服务端, Leptos SSR 应用程序与您选择的 [Actix-web](https://docs.rs/leptos_actix/latest/leptos_actix/) 或 [Axum](https://docs.rs/leptos_axum/latest/leptos_axum/) 服务器库紧密集成，所以您可以利用这些社区的 crate 来帮助构建您的 Leptos 服务端。
+   使用 Leptos 进行 SSR（服务端渲染）有以下优势：它可以帮助您的 Web 应用实现最快的初始加载时间和最佳的 SEO 效果。此外，SSR 应用通过 Leptos 的一个名为“服务器函数”（server functions）的特性，可以显著简化跨越服务器和客户端的交互。该特性允许您从客户端代码中透明地调用服务器上的函数（稍后会详细介绍此功能）。然而，全栈 SSR 并非尽善尽美——它的缺点包括较慢的开发迭代周期（因为在修改 Rust 代码时需要同时重新编译服务器和客户端），以及与状态复用（hydration）相关的一些额外复杂性。
 
-By the end of the book, you should have a good idea of which trade-offs to make and which route to take - CSR or SSR - depending on your project's requirements.
+读完本书后，您应该对根据项目需求做出哪些权衡以及采取哪条路线（CSR 还是 SSR）有一个很好的了解。
 
 In Part 1 of this book, we'll start with client-side rendering Leptos sites and building reactive UIs using `Trunk` to serve our JS and WASM bundle to the browser.
 

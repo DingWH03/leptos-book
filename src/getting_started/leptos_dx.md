@@ -1,4 +1,4 @@
-# Leptos Developer Experience Improvements
+# 优化 Leptos 开发体验
 
 There are a couple of things you can do to improve your experience of developing websites and apps with Leptos. You may want to take a few minutes and set up your environment to optimize your development experience, especially if you want to code along with the examples in this book.
 

@@ -5,8 +5,8 @@ additional-css = [
     "./sandbox.css",
 ]
 additional-js = ["./sandbox.js"]
-git-repository-url = "https://github.com/leptos-rs/book"
-edit-url-template = "https://github.com/leptos-rs/book/edit/main/{path}"
+git-repository-url = "https://github.com/DingWH03/leptos-book"
+edit-url-template = "https://github.com/DingWH03/leptos-book/edit/main/{path}"
 [output.html.playground]
 runnable = false
 
