@@ -1,23 +1,21 @@
-# The Leptos Community and `leptos-*` Crates
+# Leptos 社区和`leptos-*`单元包（Crates）
 
-## The Community
+## 社区
 
-One final note before we get to building with Leptos: if you haven't already, feel free to join the growing community on the Leptos [Discord](https://discord.gg/YdRAhS7eQB) and on [Github](https://github.com/leptos-rs/leptos). Our Discord channel in particular is very active and friendly - we'd love to have you there!
+在我们开始使用 Leptos 构建应用之前，最后提醒一下：如果您还没有加入，欢迎加入日益壮大的 Leptos 社区，无论是在 Leptos 的 Discord 频道还是 [Github](https://github.com/leptos-rs/leptos) 上。特别是我们的 [Discord](https://discord.gg/YdRAhS7eQB) 频道，非常活跃且友好——我们很希望能在那儿见到您！
 
 ```admonish note
-If you find a chapter or an explanation that isn't clear while you're working your way through the Leptos book, just mention it in the "docs-and-education" channel or ask a question in "help" so we can clear things up and update the book for others.
+如果在阅读 Leptos 书籍的过程中遇到不清楚的章节或解释，您可以在 "docs-and-education" 频道提到它，或在 "help" 频道提问，这样我们可以帮助澄清问题并更新书籍内容，方便其他人参考。
 ```
 
-As you get further along in your Leptos journey and find that you have questions about "how to do 'x' with Leptos", then search the Discord "help" channel to see if a similar question has been asked before, or feel free to post your own question - the community is quite helpful and very responsive.
+随着您在 Leptos 的学习进展，如果遇到关于“如何用 Leptos 做 'x'”的问题，可以先在 Discord 的 "help" 频道搜索，看看是否已经有人问过类似的问题，或者随时发布您的问题——社区非常友好且响应迅速，大家都会乐于提供帮助。
 
-The "[Discussions](https://github.com/leptos-rs/leptos/discussions)" on Github are also a great place for asking questions and keeping up with Leptos announcements.
+Github 上的 "[Discussions](https://github.com/leptos-rs/leptos/discussions)" 也是一个非常好的提问和关注 Leptos 最新动态的地方。
 
-And of course, if you run into any bugs while developing with Leptos or would like to make a feature request (or contribute a bug fix / new feature), open up an issue on the [Github issue tracker](https://github.com/leptos-rs/leptos/issues).
-
+当然，如果在使用 Leptos 开发时遇到任何 bug，或者想要提出功能请求（或贡献 bug 修复/新特性），请在 [Github issue tracker](https://github.com/leptos-rs/leptos/issues)上提交问题。
 
 ## Leptos-* Crates
 
-The community has built a growing number of Leptos-related crates that will help you get productive with Leptos projects more quickly - check out the list of crates built on top of Leptos and contributed by the community on the [Awesome Leptos](https://github.com/leptos-rs/awesome-leptos) repo on Github.
+社区已经构建了越来越多与 Leptos 相关的 crates，它们将帮助您更快速地投入到 Leptos 项目的开发中。您可以在 Github 上的 [Awesome Leptos](https://github.com/leptos-rs/awesome-leptos) 仓库中查看由社区贡献并基于 Leptos 构建的 crates 列表。
 
-If you want to find the newest, up-and-coming Leptos-related crates, check out the "Tools and Libraries" section of the Leptos Discord. In that section, there are channels for the Leptos `view!` macro formatter (in the "leptosfmt" channel); there's a channel for the utility library "leptos-use"; another channel for the UI component libary "leptonic";  and a "libraries" channel where new `leptos-*` crates are discussed before making their way into the growing list of crates and resources available on [Awesome Leptos](https://github.com/leptos-rs/awesome-leptos).
-
+如果您想发现最新的、正在快速发展的 Leptos 相关 crates，可以查看 Leptos Discord 中的 “Tools and Libraries” 频道。在该频道中，有针对 Leptos `view!` 宏格式化工具（在 "leptosfmt" 频道）和实用库 "leptos-use" 的讨论频道；还有 UI 组件库 "leptonic" 的频道；以及一个 "libraries" 频道，讨论新发布的 leptos-* crates，这些 crates 会在进入 [Awesome Leptos](https://github.com/leptos-rs/awesome-leptos) 的逐步完善的资源和 crates 列表之前进行讨论。

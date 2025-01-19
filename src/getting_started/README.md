@@ -15,50 +15,50 @@
 
 读完本书后，您应该对根据项目需求做出哪些权衡以及采取哪条路线（CSR 还是 SSR）有一个很好的了解。
 
-In Part 1 of this book, we'll start with client-side rendering Leptos sites and building reactive UIs using `Trunk` to serve our JS and WASM bundle to the browser.
+在本书的第1部分，我们将从使用客户端渲染的 Leptos 网站开始，构建响应式用户界面（UI），并使用 Trunk 将 JavaScript 和 WASM 包提供给浏览器。
 
-We’ll introduce `cargo-leptos` in Part 2 of this book, which is all about working with the full power of Leptos in its full-stack, SSR mode.
+在本书的第2部分，我们将介绍 `cargo-leptos`，全面讲解 Leptos 如何在全栈 SSR 模式下充分发挥其强大功能。
 
 ```admonish note
-If you're coming from the Javascript world and terms like client-side rendering (CSR) and server-side rendering (SSR) are unfamiliar to you, the easiest way to understand the difference is by analogy:
+如果您熟悉 JavaScript ，但对像客户端渲染（CSR）和服务端渲染（SSR）这样的术语感到陌生，那么理解它们差异的最简单方法是通过下面的类比：
 
-Leptos' CSR mode is similar to working with React (or a 'signals'-based framework like SolidJS), and focuses on producing a client-side UI which you can use with any tech stack on the server.
+Leptos 的客户端渲染（CSR）模式类似于使用 React（或类似 SolidJS 的“信号”框架），重点是生成一个客户端渲染的用户界面（UI），可以与任何服务器端技术栈配合使用。
 
-Using Leptos' SSR mode is similar to working with a full-stack framework like Next.js in the React world (or Solid's "SolidStart" framework) - SSR helps you build sites and apps that are rendered on the server then sent down to the client. SSR can help to improve your site's loading performance and accessibility as well as make it easier for one person to work on *both* client- and server-side without needing to context-switch between different languages for frontend and backend.
+使用 Leptos 的服务端渲染（SSR）模式类似于在 React 领域使用像 Next.js 这样的全栈框架（或 Solid 的 “SolidStart” 框架）。SSR 可以帮助您构建在服务器上渲染后发送到客户端的站点和应用程序。SSR 有助于提升网站的加载性能和可访问性，同时让开发者可以轻松地在客户端和服务器端*共同*进行开发，而无需在前后端不同的编程语言之间频繁切换。
 
-The Leptos framework can be used either in CSR mode to just make a UI (like React), or you can use Leptos in full-stack SSR mode (like Next.js) so that you can build both your UI and your server with one language: Rust.
+Leptos 框架既可以以客户端渲染（CSR）模式使用，仅用于构建用户界面（类似于 React）；也可以以全栈服务端渲染（SSR）模式使用（类似于 Next.js），让您可以使用一种语言——Rust，同时构建用户界面和服务器端。
 
 ```
 
-## Hello World! Getting Set up for Leptos CSR Development
+## 准备好，进入 Leptos CSR 的世界
 
-First up, make sure Rust is installed and up-to-date ([see here if you need instructions](https://www.rust-lang.org/tools/install)).
+首先，请确保您已经安装了最新的Rust语言套件。 ([查看 Rust 安装指南？](https://www.rust-lang.org/tools/install)).
 
-If you don’t have it installed already, you can install the "Trunk" tool for running Leptos CSR sites by running the following on the command-line:
+如果你是第一次进行安装配置，你首先应该使用下面的命令来安装进行 Leptos CSR 页面客户端渲染的"Trunk"工具：
 
 ```bash
 cargo install trunk
 ```
 
-And then create a basic Rust project
+之后，创建一个基础的 Rust 工程项目：
 
 ```bash
 cargo init leptos-tutorial
 ```
 
-`cd` into your new `leptos-tutorial` project and add `leptos` as a dependency
+`cd` 进入新创建的 `leptos-tutorial` 项目中 然后添加 `leptos` 作为一个依赖项。
 
 ```bash
 cargo add leptos --features=csr
 ```
 
-Make sure you've added the `wasm32-unknown-unknown` target so that Rust can compile your code to WebAssembly to run in the browser.
+确保您已添加 `wasm32-unknown-unknown` 构建目标（target），以便 Rust 能将您的代码编译为可在浏览器中运行的 WebAssembly。
 
 ```bash
 rustup target add wasm32-unknown-unknown
 ```
 
-Create a simple `index.html` in the root of the `leptos-tutorial` directory
+创建一个最简单的 `index.html` 在项目 `leptos-tutorial` 的根路径下（./index.html）
 
 ```html
 <!DOCTYPE html>
@@ -68,7 +68,7 @@ Create a simple `index.html` in the root of the `leptos-tutorial` directory
 </html>
 ```
 
-And add a simple “Hello, world!” to your `main.rs`
+添加一个最简单的显示 “Hello, world!” 的代码到您的 `main.rs` 代码中。
 
 ```rust
 use leptos::prelude::*;
@@ -78,7 +78,7 @@ fn main() {
 }
 ```
 
-Your directory structure should now look something like this
+您目前的目录结构应该和下面所展示的一致：
 
 ```
 leptos_tutorial
@@ -88,18 +88,17 @@ leptos_tutorial
 ├── index.html
 ```
 
-Now run `trunk serve --open` from the root of the `leptos-tutorial` directory.
-Trunk should automatically compile your app and open it in your default browser.
-If you make edits to `main.rs`, Trunk will recompile your source code and
-live-reload the page.
+现在从项目`leptos-tutorial`的根目录使用终端运行 `trunk serve --open`。
+Trunk 会自动编译您的应用程序并在您的默认浏览器中打开它。
+如果您对`main.rs`进行编辑，Trunk 将重新编译您的源代码并实时重新加载页面。
 
-Welcome to the world of UI development with Rust and WebAssembly (WASM), powered by Leptos and Trunk!
+欢迎进入由 Rust 和 WebAssembly (WASM) 驱动的 UI 开发世界，由 Leptos 和 Trunk 提供支持！
 
 ```admonish note
-If you are using Windows, note that `trunk serve --open` may not work. If you have issues with `--open`,
-simply use `trunk serve` and open a browser tab manually.
+如果您正在使用Windows操作系统，`trunk serve --open`可能不会奏效。如果您使用`--open`无法自动打开默认浏览器，
+那么只需要使用`trunk serve`来启动服务，然后手动打开浏览器即可。
 ```
 
 ---
 
-Now before we get started building your first real applications with Leptos, there are a couple of things you might want to know to help make your experience with Leptos just a little bit easier.
+在开始使用 Leptos 构建您的第一个实际应用之前，有一些事情您可能需要了解，这将帮助您更轻松地使用 Leptos。

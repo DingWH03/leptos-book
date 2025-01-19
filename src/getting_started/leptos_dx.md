@@ -1,31 +1,32 @@
 # 优化 Leptos 开发体验
 
-There are a couple of things you can do to improve your experience of developing websites and apps with Leptos. You may want to take a few minutes and set up your environment to optimize your development experience, especially if you want to code along with the examples in this book.
+有几件事可以帮助您提升使用 Leptos 开发网站和应用的体验。您可能需要花几分钟时间来配置您的开发环境，以优化开发流程，特别是如果您计划跟随本书中的示例一起编写代码的话。
 
-## 1) Set up `console_error_panic_hook`
+## 1) 设置`console_error_panic_hook`
 
-By default, panics that happen while running your WASM code in the browser just throw an error in the browser with an unhelpful message like `Unreachable executed` and a stack trace that points into your WASM binary.
+默认情况下，当您的 WASM 代码在浏览器中运行时发生 panic，浏览器会抛出一条没有实际帮助的信息，例如`Unreachable executed`，并提供一个指向 WASM 二进制文件的堆栈跟踪。
 
-With `console_error_panic_hook`, you get an actual Rust stack trace that includes a line in your Rust source code.
+使用`console_error_panic_hook`后，您将获得一个实际的 Rust 堆栈跟踪，其中包含 Rust 源代码中的具体行号。
 
-It's very easy to set up:
+设置非常简单：
 
-1. Run `cargo add console_error_panic_hook` in your project
-2. In your main function, add `console_error_panic_hook::set_once();`
+1. 在项目中运行`cargo add console_error_panic_hook` 命令。
+2. 在`main`函数中添加`console_error_panic_hook::set_once();`
 
-> If this is unclear, [click here for an example](https://github.com/leptos-rs/leptos/blob/main/examples/counter/src/main.rs#L6).
+> 如果您不太明白如何修改`main`函数，点击[这里](https://github.com/leptos-rs/leptos/blob/main/examples/counter/src/main.rs#L6)查看示例。
 
-Now you should have much better panic messages in the browser console!
+现在，您应该能在浏览器控制台中看到更清晰的 panic 错误信息！
 
-## 2) Editor Autocompletion inside `#[component]` and `#[server]`
+## 2) `#[component]`和`#[server]`代码块内部的自动补全
 
-Because of the nature of macros (they can expand from anything to anything, but only if the input is exactly correct at that instant) it can be hard for rust-analyzer to do proper autocompletion and other support.
+由于宏的特性（它们可以从任何东西扩展到任何东西，但前提是输入在那个时刻必须完全正确），这可能会让 rust-analyzer 很难提供适当的自动补全和其他支持。
 
-If you run into issues using these macros in your editor, you can explicitly tell rust-analyzer to ignore certain proc macros. For the `#[server]` macro especially, which annotates function bodies but doesn't actually transform anything inside the body of your function, this can be really helpful.
+如果在编辑器中使用这些宏时遇到问题，您可以显式告诉 rust-analyzer 忽略某些过程宏。对于`#[server]`宏尤其如此，它用于注解函数体，但实际上并不会修改函数体内部的内容，这时这种做法会非常有帮助。
 
-```admonish note 
- Starting in Leptos version 0.5.3, rust-analyzer support was added for the `#[component]` macro, but if you run into issues, you may want to add `#[component]` to the macro ignore list as well (see below).
-Note that this means that rust-analyzer doesn't know about your component props, which may generate its own set of errors or warnings in the IDE.
+```admonish note
+从 Leptos 版本 0.5.3 开始，`#[component]`宏得到了 rust-analyzer 的支持，但如果遇到问题，您可能需要将`#[component]`添加到宏忽略列表中（如下所示）。
+
+请注意，这意味着 rust-analyzer 无法识别您的组件属性，这可能会在 IDE 中生成一组错误或警告。
 ```
 
 VSCode `settings.json`:
@@ -126,16 +127,16 @@ SublimeText 3, under `LSP-rust-analyzer.sublime-settings` in `Goto Anything...` 
 }
 ```
 
-## 3) Set up `leptosfmt` With Rust Analyzer (optional)
+## 3) 设置`leptosfmt`配合 Rust Analyzer工作（可选）
 
-`leptosfmt` is a formatter for the Leptos `view!` macro (inside of which you'll typically write your UI code). Because the `view!` macro enables an 'RSX' (like JSX) style of writing your UI's, cargo-fmt has a harder time auto-formatting your code that's inside the `view!` macro. `leptosfmt` is a crate that solves your formatting issues and keeps your RSX-style UI code looking nice and tidy!
+`leptosfmt`是用于格式化 Leptos `view!`宏的工具（在该宏内部，您通常会编写 UI 代码）。由于`view!`宏采用类似 JSX 的 RSX 风格编写 UI，cargo-fmt 很难自动格式化该宏内部的代码。而`leptosfmt`是一个解决格式化问题的 crate，它能确保您的 RSX 风格 UI 代码保持整洁和美观！
 
-`leptosfmt` can be installed and used via the command line or from within your code editor:
+`leptosfmt` 可以通过命令行或代码编辑器内进行安装和使用：
 
-First, install the tool with `cargo install leptosfmt`.
+首先，使用命令`cargo install leptosfmt`来安装该工具。
 
-If you just want to use the default options from the command line, just run `leptosfmt ./**/*.rs` from the root of your project to format all the rust files using `leptosfmt`.
+如果您只想使用默认选项进行命令行格式化，只需要在项目根目录下运行`leptosfmt ./**/*.rs`，它将使用`leptosfmt`格式化所有的 Rust 文件。
 
-If you wish to set up your editor to work with `leptosfmt`, or if you wish to customize your `leptosfmt` experience, please see the instructions available on the [`leptosfmt` github repo's README.md page](https://github.com/bram209/leptosfmt).
+如果您希望在编辑器中使用 `leptosfmt`，或者想自定义`leptosfmt`的使用体验，请参阅[`leptosfmt` GitHub 仓库的 README.md 页面中的说明](https://github.com/bram209/leptosfmt)。
 
-Just note that it's recommended to set up your editor with `leptosfmt` on a per-workspace basis for best results.
+需要注意的是，建议在每个工作区内单独设置编辑器与`leptosfmt`的集成为最佳效果。

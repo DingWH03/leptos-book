@@ -1,28 +1,26 @@
-# Part 1: Building User Interfaces
+# 第1部分：构建用户界面
 
-In the first part of the book, we're going to look at building user interfaces on the client-side using Leptos. Under the hood, Leptos and Trunk are bundling up a snippet of Javascript which will load up the Leptos UI, which has been compiled to WebAssembly to drive the interactivity in your CSR (client-side rendered) website.
+在本书的第一部分，我们将探讨如何使用 Leptos 在客户端构建用户界面。在底层，Leptos 和 Trunk 会打包一段 JavaScript 代码，这段代码将加载已编译为 WebAssembly 的 Leptos UI，并驱动您 CSR（客户端渲染）网站实现交互性。
 
-Part 1 will introduce you to the basic tools you need to build a reactive user interface powered by Leptos and Rust. By the end of Part 1, you should be able to
-build a snappy synchronous website that's rendered in the browser and which you can deploy on any static-site hosting service, like Github Pages or Vercel.
+第1部分将介绍构建由 Leptos 和 Rust 驱动的响应式用户界面所需的基本工具。在第1部分结束时，您应该能够： 构建一个流畅的同步网站，该网站在浏览器中渲染，并且可以部署到任何静态网站托管服务，例如 Github Pages 或 Vercel。
 
 ```admonish info
-To get the most out of this book, we encourage you to code along with the examples provided.
-In the [Getting Started](https://book.leptos.dev/getting_started/) and [Leptos DX](https://book.leptos.dev/getting_started/leptos_dx.html) chapters, we showed you how to set up a basic project with Leptos and Trunk, including WASM error handling in the browser.
-That basic setup is enough to get you started developing with Leptos.
+为了充分利用本书的内容，我们鼓励您跟随提供的示例一起编写代码。
+在[入门](https://book.leptos.cxhap.top/getting_started/)和[优化 Leptos 开发体验](https://book.leptos.cxhap.top/getting_started/leptos_dx.html)章节中，我们向您展示了如何使用 Leptos 和 Trunk 设置一个基本项目，包括在浏览器中处理 WASM 错误的方式。
+这个基础设置已经足以让您开始使用 Leptos 进行开发了。
 
-If you'd prefer to get started using a more full-featured template which demonstrates how to set up a few of the basics you'd see in a real Leptos project, such as routing, (covered later in the book), injecting `<Title>` and `<Meta>` tags into the page head, and a few other niceties, then feel free to utilize [the leptos-rs `start-trunk`](https://github.com/leptos-rs/start-trunk) template repo to get up and running.
+如果您更倾向于使用一个功能更全面的模板来开始，它可以演示如何设置一些实际 Leptos 项目中的基础功能，例如路由（将在本书后面介绍）、向页面的 <head> 中注入 `<Title>` 和 `<Meta>` 标签，以及其他一些实用功能，那么您可以使用[leptos-rs start-trunk 模板仓库](https://github.com/leptos-rs/start-trunk)快速启动您的项目。
 
-The `start-trunk` template requires that you have `Trunk` and `cargo-generate` installed, which you can get by running `cargo install trunk` and `cargo install cargo-generate`.
+`start-trunk` 模板要求您安装 `Trunk` 和 `cargo-generate`，您可以通过命令`cargo install trunk` 和 `cargo install cargo-generate`安装它们。
 
-To use the template to set up your project, just run
+你只需要使用下面的命令来使用模板配置你的初始项目：
 
 `cargo generate --git https://github.com/leptos-community/start-csr`
 
-then run
+然后运行命令：
 
 `trunk serve --port 3000 --open`
 
-in the newly created app's directory to start developing your app.
-The Trunk server will reload your app on file changes, making development relatively seamless.
+在新创建的应用程序目录中开始开发您的应用程序。Trunk 服务器会在文件发生更改时自动重新加载您的应用程序，使开发过程相对更加流畅。
 
 ```
