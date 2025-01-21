@@ -1,12 +1,8 @@
 # 错误处理
 
-[In the last chapter](./06_control_flow.md), we saw that you can render `Option<T>`:
-in the `None` case, it will render nothing, and in the `Some(T)` case, it will render `T`
-(that is, if `T` implements `IntoView`). You can actually do something very similar
-with a `Result<T, E>`. In the `Err(_)` case, it will render nothing. In the `Ok(T)`
-case, it will render the `T`.
+[在上一章](./06_control_flow.md)，我们看到可以渲染 `Option<T>`：对于 `None` 情况，它会渲染空内容；对于 `Some(T)` 情况，它会渲染 `T`（前提是 `T` 实现了 `IntoView`）。实际上，你可以对 `Result<T, E>` 做类似的事情。在 `Err(_)` 情况下，它会渲染空内容；在 `Ok(T)` 情况下，它会渲染 `T`。
 
-Let’s start with a simple component to capture a number input.
+让我们从一个简单的组件开始，捕获一个数字输入：
 
 ```rust
 #[component]
@@ -15,13 +11,13 @@ fn NumericInput() -> impl IntoView {
 
     view! {
         <label>
-            "Type an integer (or not!)"
+            "输入一个整数（或其他内容！）"
             <input type="number" on:input:target=move |ev| {
-              // when input changes, try to parse a number from the input
+              // 当输入更改时，尝试从输入中解析一个数字
               set_value.set(ev.target().value().parse::<i32>())
             }/>
             <p>
-                "You entered "
+                "你输入的是 "
                 <strong>{value}</strong>
             </p>
         </label>
@@ -29,25 +25,21 @@ fn NumericInput() -> impl IntoView {
 }
 ```
 
-Every time you change the input, `on_input` will attempt to parse its value into a 32-bit
-integer (`i32`), and store it in our `value` signal, which is a `Result<i32, _>`. If you
-type the number `42`, the UI will display
+每次你更改输入时，`on_input` 都会尝试将其值解析为一个 32 位整数（`i32`），并将结果存储在我们的 `value` 信号中，该信号是一个 `Result<i32, _>`。如果你输入数字 `42`，UI 会显示：
 
 ```
-You entered 42
+你输入的是 42
 ```
 
-But if you type the string `foo`, it will display
+但如果你输入字符串 `foo`，它会显示：
 
 ```
-You entered
+你输入的是
 ```
 
-This is not great. It saves us using `.unwrap_or_default()` or something, but it would be
-much nicer if we could catch the error and do something with it.
+这不太理想。虽然避免了使用 `.unwrap_or_default()` 或类似的操作，但如果我们可以捕获错误并对其进行处理，效果会更好。
 
-You can do that, with the [`<ErrorBoundary/>`](https://docs.rs/leptos/latest/leptos/error/fn.ErrorBoundary.html)
-component.
+为此，你可以使用 [`<ErrorBoundary/>`](https://docs.rs/leptos/latest/leptos/error/fn.ErrorBoundary.html) 组件来实现。
 
 ```admonish note
 People often try to point out that `<input type="number">` prevents you from typing a string
