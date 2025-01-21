@@ -1,4 +1,4 @@
-# Error Handling
+# 错误处理
 
 [In the last chapter](./06_control_flow.md), we saw that you can render `Option<T>`:
 in the `None` case, it will render nothing, and in the `Some(T)` case, it will render `T`

@@ -1,9 +1,6 @@
-# Iterating over More Complex Data with `<For/>`
+# 使用 `<For/>` 迭代更复杂的数据
 
-This chapter goes into iteration over nested data structures in a bit
-more depth. It belongs here with the other chapter on iteration, but feel
-free to skip it and come back if you’d like to stick with simpler subjects
-for now.
+本章将更深入地探讨如何迭代嵌套的数据结构。它与关于迭代的其他章节相关联，但如果你目前想专注于更简单的主题，可以跳过本章，稍后再回来学习。
 
 ## The Problem
 

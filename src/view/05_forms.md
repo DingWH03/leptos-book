@@ -1,80 +1,67 @@
-# Forms and Inputs
+# 表单(Forms)和输入
 
-Forms and form inputs are an important part of interactive apps. There are two
-basic patterns for interacting with inputs in Leptos, which you may recognize
-if you’re familiar with React, SolidJS, or a similar framework: using **controlled**
-or **uncontrolled** inputs.
+表单和表单输入是交互式应用程序的重要组成部分。在 Leptos 中，有两种与输入交互的基本模式，如果你熟悉 React、SolidJS 或类似框架，这些模式可能会让你感到熟悉：**受控 (controlled)** 和 **非受控 (uncontrolled)** 输入。
 
-## Controlled Inputs
+## 受控输入
 
-In a "controlled input," the framework controls the state of the input
-element. On every `input` event, it updates a local signal that holds the current
-state, which in turn updates the `value` prop of the input.
+在“受控输入”中，框架会控制输入元素的状态。每次触发 `input` 事件时，都会更新一个保存当前状态的本地信号，而这个信号反过来又会更新输入的 `value` 属性。
 
-There are two important things to remember:
+有两个重要的点需要记住：
 
-1. The `input` event fires on (almost) every change to the element, while the
-   `change` event fires (more or less) when you unfocus the input. You probably
-   want `on:input`, but we give you the freedom to choose.
-2. The `value` _attribute_ only sets the initial value of the input, i.e., it
-   only updates the input up to the point that you begin typing. The `value`
-   _property_ continues updating the input after that. You usually want to set
-   `prop:value` for this reason. (The same is true for `checked` and `prop:checked`
-   on an `<input type="checkbox">`.)
+1. `input` 事件会在元素的每次（几乎是每次）更改时触发，而 `change` 事件会在输入失去焦点时（大致是这样）触发。你可能更需要使用 `on:input`，但框架也给你选择的自由。
+2. `value` **属性** 仅设置输入的初始值，即它只会在你开始输入之前更新输入值。而 `value` **属性 (property)** 则会在你开始输入后持续更新输入值。出于这个原因，你通常需要设置 `prop:value`。（对于 `<input type="checkbox">` 中的 `checked` 和 `prop:checked` 也是如此。）
 
 ```rust
 let (name, set_name) = signal("Controlled".to_string());
 
 view! {
     <input type="text"
-        // adding :target gives us typed access to the element
-        // that is the target of the event that fires
+        // 添加 :target 可以让我们以类型安全的方式访问
+        // 触发事件的目标元素
         on:input:target=move |ev| {
-            // .value() returns the current value of an HTML input element
+            // .value() 返回 HTML 输入元素的当前值
             set_name.set(ev.target().value());
         }
 
-        // the `prop:` syntax lets you update a DOM property,
-        // rather than an attribute.
+        // 使用 `prop:` 语法更新 DOM 属性而不是 HTML 属性
         prop:value=name
     />
     <p>"Name is: " {name}</p>
 }
 ```
 
-> #### Why do you need `prop:value`?
+> #### 为什么需要使用 `prop:value`？
 >
-> Web browsers are the most ubiquitous and stable platform for rendering graphical user interfaces in existence. They have also maintained an incredible backwards compatibility over their three decades of existence. Inevitably, this means there are some quirks.
+> Web 浏览器是现存最普遍、最稳定的图形用户界面渲染平台之一。它们在存在的三十多年中还保持了令人难以置信的向后兼容性。这不可避免地导致了一些奇怪的行为。
 >
-> One odd quirk is that there is a distinction between HTML attributes and DOM element properties, i.e., between something called an “attribute” which is parsed from HTML and can be set on a DOM element with `.setAttribute()`, and something called a “property” which is a field of the JavaScript class representation of that parsed HTML element.
+> 一个奇怪的地方是，HTML 属性 (attribute) 和 DOM 元素属性 (property) 之间存在区别，即所谓的“属性(attribute)”是从 HTML 中解析出来的，可以通过 `.setAttribute()` 在 DOM 元素上设置，而“属性 (property)”是解析后的 HTML 元素在 JavaScript 类表示中的一个字段。
 >
-> In the case of an `<input value=...>`, setting the `value` _attribute_ is defined as setting the initial value for the input, and setting `value` _property_ sets its current value. It maybe easiest to understand this by opening `about:blank` and running the following JavaScript in the browser console, line by line:
+> 以 `<input value=...>` 为例，设置 `value` **属性 (attribute)** 被定义为设置输入的初始值，而设置 `value` **属性 (property)** 则是设置其当前值。你可以通过打开 `about:blank` 并在浏览器控制台中逐行运行以下 JavaScript 代码来更容易理解这一点：
 >
 > ```js
-> // create an input and append it to the DOM
+> // 创建一个输入框并将其添加到 DOM
 > const el = document.createElement("input");
 > document.body.appendChild(el);
 >
-> el.setAttribute("value", "test"); // updates the input
-> el.setAttribute("value", "another test"); // updates the input again
+> el.setAttribute("value", "test"); // 更新输入值
+> el.setAttribute("value", "another test"); // 再次更新输入值
 >
-> // now go and type into the input: delete some characters, etc.
+> // 现在尝试在输入框中输入内容，比如删除一些字符等
 >
 > el.setAttribute("value", "one more time?");
-> // nothing should have changed. setting the "initial value" does nothing now
+> // 此时应该什么都没改变，设置“初始值”现在不起作用
 >
-> // however...
+> // 然而……
 > el.value = "But this works";
 > ```
 >
-> Many other frontend frameworks conflate attributes and properties, or create a special case for inputs that sets the value correctly. Maybe Leptos should do this too; but for now, I prefer giving users the maximum amount of control over whether they’re setting an attribute or a property, and doing my best to educate people about the actual underlying browser behavior rather than obscuring it.
+> 许多其他前端框架混淆了属性 (attribute) 和属性 (property) 的概念，或者为输入框创建了一个特殊的处理方式，使其值可以正确设置。也许 Leptos 也应该这样做；但目前，我更倾向于给用户最大程度的控制，允许他们选择是设置属性 (attribute) 还是属性 (property)，同时尽力向用户解释底层浏览器的实际行为，而不是隐藏它。
 
-### Simplifying Controlled Inputs with `bind:`
+### 使用 `bind:` 简化受控输入
 
-Adherence to Web standards and a clear division between “reading from a signal” and ”writing to a signal” are good, but creating
-controlled inputs in this way can sometimes seem like more boilerplate than is really necessary.
+遵循 Web 标准，并清晰地区分“从信号读取”和“写入信号”是很好的做法，但以这种方式创建受控输入有时可能看起来比实际需要的更多样板代码。
 
-Leptos also includes a special `bind:` syntax for inputs that allows you to automatically bind signals to inputs. They do exactly the same thing as the “controlled input” pattern above: create an event listener that updates the signal, and a dynamic property that reads from the signal. You can use `bind:value` for text inputs, and `bind:checked` for checkboxes.
+Leptos 还包括了一种特殊的 `bind:` 语法，用于输入控件，可以让你自动将信号绑定到输入控件。它们与上面提到的“受控输入”模式完全相同：创建一个事件监听器来更新信号，并通过动态属性从信号读取数据。你可以使用 `bind:value` 绑定文本输入，使用 `bind:checked` 绑定复选框。
 
 ```rust
 let (name, set_name) = signal("Controlled".to_string());
@@ -102,15 +89,11 @@ view! {
 }
 ```
 
-## Uncontrolled Inputs
+## 非受控输入（Uncontrolled Inputs）
 
-In an "uncontrolled input," the browser controls the state of the input element.
-Rather than continuously updating a signal to hold its value, we use a
-[`NodeRef`](https://docs.rs/leptos/latest/leptos/tachys/reactive_graph/node_ref/struct.NodeRef.html) to access
-the input when we want to get its value.
+在“非受控输入”中，浏览器控制输入元素的状态。而不是不断更新一个信号来存储其值，我们使用 [`NodeRef`](https://docs.rs/leptos/latest/leptos/tachys/reactive_graph/node_ref/struct.NodeRef.html) 来在需要获取值时访问输入元素。
 
-In this example, we only notify the framework when the `<form>` fires a `submit` event.
-Note the use of the [`leptos::html`](https://docs.rs/leptos/latest/leptos/html/index.html) module, which provides a bunch of types for every HTML element.
+在下面的示例中，我们只在 `<form>` 触发 `submit` 事件时通知框架。请注意 [`leptos::html`](https://docs.rs/leptos/latest/leptos/html/index.html) 模块的使用，它提供了每个 HTML 元素的多种类型。
 
 ```rust
 let (name, set_name) = signal("Uncontrolled".to_string());
@@ -118,7 +101,7 @@ let (name, set_name) = signal("Uncontrolled".to_string());
 let input_element: NodeRef<html::Input> = NodeRef::new();
 
 view! {
-    <form on:submit=on_submit> // on_submit defined below
+    <form on:submit=on_submit> // on_submit 在下方定义
         <input type="text"
             value=name
             node_ref=input_element
@@ -129,65 +112,50 @@ view! {
 }
 ```
 
-The view should be pretty self-explanatory by now. Note two things:
+到现在为止，这个视图应该是相当直观的。请注意以下两点：
 
-1. Unlike in the controlled input example, we use `value` (not `prop:value`).
-   This is because we’re just setting the initial value of the input, and letting
-   the browser control its state. (We could use `prop:value` instead.)
-2. We use `node_ref=...` to fill the `NodeRef`. (Older examples sometimes use `_ref`.
-   They are the same thing, but `node_ref` has better rust-analyzer support.)
+1. 与受控输入示例不同，我们使用 `value`（而不是 `prop:value`）。这是因为我们只是设置输入框的初始值，并让浏览器控制其状态。（当然，我们也可以使用 `prop:value`。）
+2. 我们使用 `node_ref=...` 来填充 `NodeRef`。（早期的示例有时使用 `_ref`，它们的作用是相同的，但 `node_ref` 对 `rust-analyzer` 的支持更好。）
 
-`NodeRef` is a kind of reactive smart pointer: we can use it to access the
-underlying DOM node. Its value will be set when the element is rendered.
+`NodeRef` 是一种 **响应式智能指针**，它允许我们访问底层的 DOM 节点。当元素被渲染时，其值将被设置。
 
 ```rust
 let on_submit = move |ev: SubmitEvent| {
-    // stop the page from reloading!
+    // 阻止页面刷新
     ev.prevent_default();
 
-    // here, we'll extract the value from the input
+    // 这里，我们从输入框中提取值
     let value = input_element
         .get()
-        // event handlers can only fire after the view
-        // is mounted to the DOM, so the `NodeRef` will be `Some`
-        .expect("<input> should be mounted")
-        // `leptos::HtmlElement<html::Input>` implements `Deref`
-        // to a `web_sys::HtmlInputElement`.
-        // this means we can call`HtmlInputElement::value()`
-        // to get the current value of the input
+        // 事件处理程序只能在视图挂载到 DOM 后触发，
+        // 因此 `NodeRef` 一定是 `Some`
+        .expect("<input> 应该已经挂载")
+        // `leptos::HtmlElement<html::Input>` 实现了 `Deref`
+        // 到 `web_sys::HtmlInputElement`，
+        // 这意味着我们可以调用 `HtmlInputElement::value()`
+        // 来获取输入框的当前值
         .value();
     set_name(value);
 };
 ```
 
-Our `on_submit` handler will access the input’s value and use it to call `set_name`.
-To access the DOM node stored in the `NodeRef`, we can simply call it as a function
-(or using `.get()`). This will return `Option<leptos::HtmlElement<html::Input>>`, but we
-know that the element has already been mounted (how else did you fire this event!), so
-it's safe to unwrap here.
+我们的 `on_submit` 处理程序会访问输入框的值，并用它来调用 `set_name`。要访问 `NodeRef` 存储的 DOM 节点，我们可以直接调用它（或使用 `.get()`）。它会返回 `Option<leptos::HtmlElement<html::Input>>`，但我们知道该元素已经被挂载（否则事件无法触发！），因此在这里安全地 `unwrap` 是可以接受的。
 
-We can then call `.value()` to get the value out of the input, because `NodeRef`
-gives us access to a correctly-typed HTML element.
+然后，我们可以调用 `.value()` 来获取输入框的值，因为 `NodeRef` 为我们提供了一个正确类型的 HTML 元素。
 
-Take a look at [`web_sys` and `HtmlElement`](../web_sys.md) to learn more about using a `leptos::HtmlElement`.
-Also see the full CodeSandbox example at the end of this page.
+要了解更多关于 `leptos::HtmlElement` 的用法，可以查看 [`web_sys` 和 `HtmlElement`](../web_sys.md)。此外，请查看页面底部的完整 CodeSandbox 示例。
 
-## Special Cases: `<textarea>` and `<select>`
+## 特殊情况：`<textarea>` 和 `<select>`
 
-Two form elements tend to cause some confusion, in different ways.
+有两种表单元素在使用时容易引发一些混淆，分别是 `<textarea>` 和 `<select>`。
 
 ### `<textarea>`
 
-Unlike `<input>`, the `<textarea>` element does not support a `value` attribute.
-Instead, it receives its value as a plain text node in its HTML children.
+与 `<input>` 不同，`<textarea>` 元素不支持 `value` 属性。相反，它通过其 HTML 子节点中的纯文本节点来接收其值。
 
-In the current version of Leptos (in fact in Leptos 0.1-0.6), creating a dynamic child
-inserts a comment marker node. This can cause incorrect `<textarea>` rendering (and issues
-during hydration) if you try to use it to show dynamic content.
+在当前版本的 Leptos（0.1 到 0.6）中，创建动态子节点会插入一个注释标记节点。如果你尝试使用动态内容，这可能会导致 `<textarea>` 渲染错误（以及在 **hydration** 期间的问题）。
 
-Instead, you can pass a non-reactive initial value as a child, and use `prop:value` to
-set its current value. (`<textarea>` doesn’t support the `value` **attribute**, but _does_
-support the `value` **property**...)
+相反，你可以将一个非响应式的初始值作为子节点传递，并使用 `prop:value` 来设置其当前值。（`<textarea>` 不支持 `value` **属性(attribute)**，但 _确实_ 支持 `value` **属性值(property)**。）
 
 ```rust
 view! {
@@ -195,7 +163,7 @@ view! {
         prop:value=move || some_value.get()
         on:input:target=move |ev| some_value.set(ev.target().value())
     >
-        /* plain-text initial value, does not change if the signal changes */
+        /* 纯文本初始值，即使信号发生变化也不会改变 */
         {some_value.get_untracked()}
     </textarea>
 }
@@ -203,8 +171,7 @@ view! {
 
 ### `<select>`
 
-The `<select>` element can likewise be controlled via a `value` property on the `<select>` itself,
-which will select whichever `<option>` has that value.
+`<select>` 元素同样可以通过其自身的 `value` 属性来控制，`value` 属性会选择与该值匹配的 `<option>` 元素。
 
 ```rust
 let (value, set_value) = signal(0i32);
@@ -219,7 +186,7 @@ view! {
     <option value="1">"1"</option>
     <option value="2">"2"</option>
   </select>
-  // a button that will cycle through the options
+  // 一个可以循环切换选项的按钮
   <button on:click=move |_| set_value.update(|n| {
     if *n == 2 {
       *n = 0;

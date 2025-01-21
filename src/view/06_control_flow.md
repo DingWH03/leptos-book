@@ -1,53 +1,32 @@
-# Control Flow
+# 控制流（Control Flow）
 
-In most applications, you sometimes need to make a decision: Should I render this
-part of the view, or not? Should I render `<ButtonA/>` or `<WidgetB/>`? This is
-**control flow**.
+在大多数应用程序中，你有时需要做出决策：是否应该渲染视图的这一部分？应该渲染 `<ButtonA/>` 还是 `<WidgetB/>`？这就是 **控制流（Control Flow）**。
 
-## A Few Tips
+## 一些提示
 
-When thinking about how to do this with Leptos, it’s important to remember a few
-things:
+在考虑如何用 Leptos 实现控制流时，记住以下几点是很重要的：
 
-1. Rust is an expression-oriented language: control-flow expressions like
-   `if x() { y } else { z }` and `match x() { ... }` return their values. This
-   makes them very useful for declarative user interfaces.
-2. For any `T` that implements `IntoView`—in other words, for any type that Leptos
-   knows how to render—`Option<T>` and `Result<T, impl Error>` _also_ implement
-   `IntoView`. And just as `Fn() -> T` renders a reactive `T`, `Fn() -> Option<T>`
-   and `Fn() -> Result<T, impl Error>` are reactive.
-3. Rust has lots of handy helpers like [Option::map](https://doc.rust-lang.org/std/option/enum.Option.html#method.map),
-   [Option::and_then](https://doc.rust-lang.org/std/option/enum.Option.html#method.and_then),
-   [Option::ok_or](https://doc.rust-lang.org/std/option/enum.Option.html#method.ok_or),
-   [Result::map](https://doc.rust-lang.org/std/result/enum.Result.html#method.map),
-   [Result::ok](https://doc.rust-lang.org/std/result/enum.Result.html#method.ok), and
-   [bool::then](https://doc.rust-lang.org/std/primitive.bool.html#method.then) that
-   allow you to convert, in a declarative way, between a few different standard types,
-   all of which can be rendered. Spending time in the `Option` and `Result` docs in particular
-   is one of the best ways to level up your Rust game.
-4. And always remember: to be reactive, values must be functions. You’ll see me constantly
-   wrap things in a `move ||` closure, below. This is to ensure that they actually rerun
-   when the signal they depend on changes, keeping the UI reactive.
+1. **Rust 是一种面向表达式的语言**：像 `if x() { y } else { z }` 和 `match x() { ... }` 这样的控制流表达式会返回值。这使得它们在声明式用户界面中非常有用。
+2. **任何实现了 `IntoView` 的类型都可以渲染**——换句话说，任何 Leptos 知道如何渲染的类型，`Option<T>` 和 `Result<T, impl Error>` **也** 实现了 `IntoView`。而且，就像 `Fn() -> T` 会渲染一个响应式 `T` 一样，`Fn() -> Option<T>` 和 `Fn() -> Result<T, impl Error>` 也是响应式的。
+3. **Rust 提供了许多方便的工具函数**，比如 [Option::map](https://doc.rust-lang.org/std/option/enum.Option.html#method.map)、[Option::and_then](https://doc.rust-lang.org/std/option/enum.Option.html#method.and_then)、[Option::ok_or](https://doc.rust-lang.org/std/option/enum.Option.html#method.ok_or)、[Result::map](https://doc.rust-lang.org/std/result/enum.Result.html#method.map)、[Result::ok](https://doc.rust-lang.org/std/result/enum.Result.html#method.ok) 和 [bool::then](https://doc.rust-lang.org/std/primitive.bool.html#method.then)。这些工具函数允许你以声明式的方式在不同的标准类型之间转换，而这些类型都可以被渲染。特别是，花时间学习 `Option` 和 `Result` 的文档是提升你 Rust 技能的最佳方式之一。
+4. **始终记住：为了保持响应性，值必须是函数**。你会发现我在下面的示例中经常用 `move ||` 闭包包裹内容。这是为了确保它们在依赖的信号发生变化时重新运行，从而保持 UI 的响应性。
 
-## So What?
+## 那么，这意味着什么？
 
-To connect the dots a little: this means that you can actually implement most of
-your control flow with native Rust code, without any control-flow components or
-special knowledge.
+简单来说，这意味着你实际上可以使用 **原生 Rust 代码** 来实现大部分控制流，而无需依赖专门的控制流组件或特殊的知识。
 
-For example, let’s start with a simple signal and derived signal:
+例如，我们可以从一个简单的信号和一个派生信号开始：
 
 ```rust
 let (value, set_value) = signal(0);
 let is_odd = move || value.get() % 2 != 0;
 ```
 
-We can use these signals and ordinary Rust to build most control flow.
+我们可以利用这些信号以及普通的 Rust 语法来构建大部分的控制流。
 
-### `if` statements
+### `if` 语句
 
-Let’s say I want to render some text if the number is odd, and some other text
-if it’s even. Well, how about this?
+假设我们想要在数字为奇数时渲染一些文本，而在数字为偶数时渲染另一些文本。那么，可以这样做：
 
 ```rust
 view! {
@@ -61,12 +40,11 @@ view! {
 }
 ```
 
-An `if` expression returns its value, and a `&str` implements `IntoView`, so a
-`Fn() -> &str` implements `IntoView`, so this... just works!
+`if` 表达式会返回一个值，而 `&str` 实现了 `IntoView`，所以 `Fn() -> &str` 也实现了 `IntoView`，因此，这样的写法……**就能直接工作！**
 
 ### `Option<T>`
 
-Let’s say we want to render some text if it’s odd, and nothing if it’s even.
+假设我们想在数字为奇数时渲染一些文本，而在偶数时不渲染任何内容。
 
 ```rust
 let message = move || {
@@ -82,7 +60,7 @@ view! {
 }
 ```
 
-This works fine. We can make it a little shorter if we’d like, using `bool::then()`.
+这可以正常工作。我们还可以使用 `bool::then()` 让代码更简洁：
 
 ```rust
 let message = move || is_odd().then(|| "Ding ding ding!");
@@ -91,13 +69,11 @@ view! {
 }
 ```
 
-You could even inline this if you’d like, although personally I sometimes like the
-better `cargo fmt` and `rust-analyzer` support I get by pulling things out of the `view`.
+你甚至可以将其内联到 `view!` 中，不过从 `view!` 之外提取逻辑有时会带来更好的 `cargo fmt` 和 `rust-analyzer` 支持，所以根据需要选择最合适的方式。
 
-### `match` statements
+### `match` 语句
 
-We’re still just writing ordinary Rust code, right? So you have all the power of Rust’s
-pattern matching at your disposal.
+我们仍然只是在编写普通的 Rust 代码，对吧？所以你可以充分利用 Rust 的 **模式匹配** 机制。
 
 ```rust
 let message = move || {
@@ -113,18 +89,15 @@ view! {
 }
 ```
 
-And why not? YOLO, right?
+为什么不这样做呢？反正 **YOLO**（你只活一次），对吧？
 
-## Preventing Over-Rendering
+## 防止过度渲染
 
-Not so YOLO.
+并不是那么 **YOLO**（随心所欲）。
 
-Everything we’ve just done is basically fine. But there’s one thing you should remember
-and try to be careful with. Each one of the control-flow functions we’ve created so far
-is basically a derived signal: it will rerun every time the value changes. In the examples
-above, where the value switches from even to odd on every change, this is fine.
+我们刚才做的一切基本上都是可以的，但有一件事你需要记住并注意。到目前为止，我们创建的每个控制流函数本质上都是一个 **派生信号（derived signal）**，它会在 `value` 发生变化时重新运行。在上面的示例中，由于 `value` 每次都会在 **奇数** 和 **偶数** 之间切换，这没有问题。
 
-But consider the following example:
+但请考虑以下示例：
 
 ```rust
 let (value, set_value) = signal(0);
@@ -140,7 +113,7 @@ view! {
 }
 ```
 
-This _works_, for sure. But if you added a log, you might be surprised
+这 **确实** 能正常工作。但如果你添加了一条日志，你可能会感到惊讶：
 
 ```rust
 let message = move || if value.get() > 5 {
@@ -152,7 +125,7 @@ let message = move || if value.get() > 5 {
 };
 ```
 
-As a user clicks a button, you’d see something like this:
+当用户点击按钮时，你可能会看到类似这样的日志输出：
 
 ```
 1: rendering Small
@@ -166,10 +139,7 @@ As a user clicks a button, you’d see something like this:
 ... ad infinitum
 ```
 
-Every time `value` changes, it reruns the `if` statement. This makes sense, with
-how reactivity works. But it has a downside. For a simple text node, rerunning
-the `if` statement and rerendering isn’t a big deal. But imagine it were
-like this:
+每次 `value` 发生变化时，`if` 语句都会重新运行。这在响应式编程的工作方式下是合理的。但它也有一个 **缺点**。对于一个简单的文本节点来说，重新运行 `if` 语句并重新渲染 **问题不大**。但如果代码是这样的呢？
 
 ```rust
 let message = move || if value.get() > 5 {
@@ -179,15 +149,11 @@ let message = move || if value.get() > 5 {
 };
 ```
 
-This rerenders `<Small/>` five times, then `<Big/>` infinitely. If they’re
-loading resources, creating signals, or even just creating DOM nodes, this is
-unnecessary work.
+在 `value` 从 **0 增加到 5** 的过程中，它会 **重复渲染 `<Small/>` 五次**，然后在 `value > 5` 之后 **无限次渲染 `<Big/>`**。如果这些组件涉及 **加载资源、创建信号，甚至只是创建 DOM 节点**，那么每次都重新渲染就是 **不必要的性能开销**。
 
 ### `<Show/>`
 
-The [`<Show/>`](https://docs.rs/leptos/latest/leptos/control_flow/fn.Show.html) component is
-the answer. You pass it a `when` condition function, a `fallback` to be shown if
-the `when` function returns `false`, and children to be rendered if `when` is `true`.
+[`<Show/>`](https://docs.rs/leptos/latest/leptos/control_flow/fn.Show.html) 组件是解决方案。你可以传递一个 `when` 条件函数，一个当 `when` 函数返回 `false` 时显示的 `fallback`，以及当 `when` 返回 `true` 时渲染的子节点。
 
 ```rust
 let (value, set_value) = signal(0);
@@ -202,25 +168,17 @@ view! {
 }
 ```
 
-`<Show/>` memoizes the `when` condition, so it only renders its `<Small/>` once,
-continuing to show the same component until `value` is greater than five;
-then it renders `<Big/>` once, continuing to show it indefinitely or until `value`
-goes below five and then renders `<Small/>` again.
+`<Show/>` 会对 `when` 条件进行 **缓存（memoize）**，因此它只会渲染一次 `<Small/>`，并持续显示该组件，直到 `value` 大于 5；然后只渲染一次 `<Big/>`，并持续显示它，除非 `value` 再次小于 5，此时会重新渲染 `<Small/>`。
 
-This is a helpful tool to avoid rerendering when using dynamic `if` expressions.
-As always, there's some overhead: for a very simple node (like updating a single
-text node, or updating a class or attribute), a `move || if ...` will be more
-efficient. But if it’s at all expensive to render either branch, reach for
-`<Show/>`.
+这是一种有效的工具，可以在使用动态 `if` 表达式时避免不必要的重新渲染。但需要注意的是，这也有一定的开销：对于非常简单的节点（比如更新单个文本节点或更新类名、属性），使用 `move || if ...` 会更高效。但如果渲染任何一个分支的开销较大，优先选择 `<Show/>`。
 
-## Note: Type Conversions
+## 注意：类型转换
 
-There‘s one final thing it’s important to say in this section.
+在这一部分，还有最后一个重要的事情需要说明。
 
-Leptos uses a statically-typed view tree. The `view` macro returns different types
-for different kinds of view.
+Leptos 使用 **静态类型的视图树**。`view!` 宏对于不同类型的视图会返回不同的类型。
 
-This won’t compile, because the different HTML elements are different types.
+下面的代码 **不会**成功编译，因为不同的 HTML 元素属于不同的类型：
 
 ```rust,compile_error
 view! {
@@ -232,36 +190,33 @@ view! {
             false if value.get() == 2 => {
                 view! { <p>"Two"</p> }
             }
-            // returns HtmlElement<Textarea>
+            // 返回 HtmlElement<Textarea>
             _ => view! { <textarea>{value.get()}</textarea> }
         }}
     </main>
 }
 ```
 
-This strong typing is very powerful, because it enables all sorts of compile-time optimizations.
-But it can be a little annoying in conditional logic like this, because you can’t
-return different types from different branches of a condition in Rust. There are two ways
-to get yourself out of this situation:
+这种 **强类型** 机制非常强大，因为它允许进行各种 **编译时优化**。但在像这样的 **条件逻辑** 中，它可能会有些麻烦，因为 **Rust 不允许不同分支返回不同的类型**。要解决这个问题，你可以使用以下两种方法：
 
-1. Use the enum `Either` (and `EitherOf3`, `EitherOf4`, etc.) to convert the different types to the same type.
-2. Use `.into_any()` to convert multiple types into one typed-erased `AnyView`.
+1. 使用 `Either`（以及 `EitherOf3`、`EitherOf4` 等）将不同类型转换为相同类型。
+2. 使用 `.into_any()` 将多个类型转换为 **类型擦除（type-erased）** 的 `AnyView`。
 
-Here’s the same example, with the conversion added:
+下面是修正后的示例，添加了类型转换，这样，所有分支的返回类型都被转换为 AnyView，从而使代码可以正常编译：
 
 ```rust,compile_error
 view! {
     <main>
         {move || match is_odd() {
             true if value() == 1 => {
-                // returns HtmlElement<Pre>
+                // 返回 HtmlElement<Pre>
                 view! { <pre>"One"</pre> }.into_any()
             },
             false if value() == 2 => {
-                // returns HtmlElement<P>
+                // 返回 HtmlElement<P>
                 view! { <p>"Two"</p> }.into_any()
             }
-            // returns HtmlElement<Textarea>
+            // 返回 HtmlElement<Textarea>
             _ => view! { <textarea>{value()}</textarea> }.into_any()
         }}
     </main>

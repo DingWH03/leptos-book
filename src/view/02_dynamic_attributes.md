@@ -1,14 +1,10 @@
-# `view`: Dynamic Classes, Styles and Attributes
+# 视图(`view`)：动态类、样式和属性
 
-So far we’ve seen how to use the `view` macro to create event listeners and to
-create dynamic text by passing a function (such as a signal) into the view.
+到目前为止，我们已经了解了如何使用 `view` 宏来创建事件监听器，以及如何通过将函数（例如信号）传递到 `view` 来创建动态文本。
 
-But of course there are other things you might want to update in your user interface.
-In this section, we’ll look at how to update classes, styles and attributes dynamically,
-and we’ll introduce the concept of a **derived signal**.
+但当然，您可能还想在用户界面中更新其他内容。在本节中，我们将介绍如何动态更新类(classes)、样式(styles)和属性(attributes)，并介绍派生信号(**derived signal**)的概念。
 
-Let’s start with a simple component that should be familiar: click a button to
-increment a counter.
+让我们从一个应该熟悉的简单组件开始：单击一个按钮来增加计数器。
 
 ```rust
 #[component]
@@ -28,29 +24,25 @@ fn App() -> impl IntoView {
 }
 ```
 
-So far, we’ve covered all of this in the previous chapter.
+到目前为止，我们在上一章中已经介绍了代码中涉及到的所有内容。
 
-## Dynamic Classes
+## 动态类(class)
 
-Now let’s say I’d like to update the list of CSS classes on this element dynamically.
-For example, let’s say I want to add the class `red` when the count is odd. I can
-do this using the `class:` syntax.
+现在假设我想动态更新该元素列表上的 CSS 类。  
+例如，我想在 `count` 为奇数时添加 `red` 类。可以使用 `class:` 语法来实现这一点。
 
 ```rust
 class:red=move || count.get() % 2 == 1
 ```
 
-`class:` attributes take
+`class:` 属性接受：
 
-1. the class name, following the colon (`red`)
-2. a value, which can be a `bool` or a function that returns a `bool`
+1. 类名，紧跟在冒号后面（如 `red`）。
+2. 一个值，可以是 `bool` 或一个返回 `bool` 的函数。
 
-When the value is `true`, the class is added. When the value is `false`, the class
-is removed. And if the value is a function that accesses a signal, the class will
-reactively update when the signal changes.
+当值为 `true` 时，类会被添加。当值为 `false` 时，类会被移除。如果值是一个访问信号的函数，当信号变化时，类会响应性地更新。
 
-Now every time I click the button, the text should toggle between red and black as
-the number switches between even and odd.
+现在，每次点击按钮时，随着数字在偶数和奇数之间变换，文本的颜色应在红色和黑色之间切换。
 
 ```rust
 <button
@@ -65,7 +57,7 @@ the number switches between even and odd.
 </button>
 ```
 
-> If you’re following along, make sure you go into your `index.html` and add something like this:
+> 如果您正在跟随我们一起操作，请确保在您的 `index.html` 中添加以下内容：
 >
 > ```html
 > <style>
@@ -75,21 +67,21 @@ the number switches between even and odd.
 > </style>
 > ```
 
-Some CSS class names can’t be directly parsed by the `view` macro, especially if they include a mix of dashes and numbers or other characters. In that case, you can use a tuple syntax: `class=("name", value)` still directly updates a single class.
+某些 CSS 类名无法通过 `view` 宏直接解析，尤其是当它们包含破折号和数字或其他字符时。在这种情况下，您可以使用元组语法：`class=("name", value)` 仍可直接更新单个类。
 
 ```rust
 class=("button-20", move || count.get() % 2 == 1)
 ```
 
-The tuple syntax also allows to specify multiple classes under a single condition using an array as the first tuple element.
+元组语法还允许通过将数组作为第一个元组元素来指定在单个条件下应用多个类。
 
 ```rust
 class=(["button-20", "rounded"], move || count() % 2 == 1)
 ```
 
-## Dynamic Styles
+## 动态样式(style)
 
-Individual CSS properties can be directly updated with a similar `style:` syntax.
+可以使用类似的 `style:` 语法直接更新单个 CSS 属性。
 
 ```rust
 let (count, set_count) = signal(0);
@@ -113,33 +105,25 @@ view! {
 }
 ```
 
-## Dynamic Attributes
+## 动态属性(Attributes)
 
-The same applies to plain attributes. Passing a plain string or primitive value to
-an attribute gives it a static value. Passing a function (including a signal) to
-an attribute causes it to update its value reactively. Let’s add another element
-to our view:
+同样的规则也适用于普通属性。为属性传递一个字符串或基本值会赋予它一个静态值。而为属性传递一个函数（包括信号）会使它的值响应式地更新。让我们在视图中添加另一个元素：
 
 ```rust
 <progress
     max="50"
-    // signals are functions, so `value=count` and `value=move || count.get()`
-    // are interchangeable.
+    // 信号是函数，因此 `value=count` 和 `value=move || count.get()` 是完全相同的。
     value=count
 />
 ```
 
-Now every time we set the count, not only will the `class` of the `<button>` be
-toggled, but the `value` of the `<progress>` bar will increase, which means that
-our progress bar will move forward.
+现在，每次设置 `count` 时，不仅 `<button>` 的 `class` 会切换，`<progress>` 元素的 `value` 属性也会增加，这意味着进度条将向前移动。
 
-## Derived Signals
+## 派生信号（Derived Signals）
 
-Let’s go one layer deeper, just for fun.
+让我们再深入一层，体验一下。
 
-You already know that we create reactive interfaces just by passing functions into
-the `view`. This means that we can easily change our progress bar. For example,
-suppose we want it to move twice as fast:
+你已经知道，只需将函数传递到 `view` 中就可以创建响应式界面。这意味着我们可以轻松地更改进度条的行为。例如，如果我们想让进度条移动速度加倍，可以这样写：
 
 ```rust
 <progress
@@ -148,41 +132,33 @@ suppose we want it to move twice as fast:
 />
 ```
 
-But imagine we want to reuse that calculation in more than one place. You can do this
-using a **derived signal**: a closure that accesses a signal.
+但是，假设我们想在多个地方复用这个计算结果。这时，可以使用 **派生信号**，也就是一个访问信号的闭包：
 
 ```rust
 let double_count = move || count.get() * 2;
 
-/* insert the rest of the view */
+/* 插入其他视图内容 */
 <progress
     max="50"
-    // we use it once here
+    // 这里使用一次
     value=double_count
 />
 <p>
     "Double Count: "
-    // and again here
+    // 这里再次使用
     {double_count}
 </p>
 ```
 
-Derived signals let you create reactive computed values that can be used in multiple
-places in your application with minimal overhead.
+派生信号允许你创建响应式的计算值，可以在应用程序的多个地方使用，且开销极小。
 
-Note: Using a derived signal like this means that the calculation runs once per
-signal change (when `count()` changes) and once per place we access `double_count`;
-in other words, twice. This is a very cheap calculation, so that’s fine.
-We’ll look at memos in a later chapter, which were designed to solve this problem
-for expensive calculations.
+注意：像这样使用派生信号意味着每次信号发生变化（当 `count()` 改变时）以及每次访问 `double_count` 时，计算都会运行一次。换句话说，计算会运行两次。由于这是一个非常廉价的计算，这样做没问题。  
+在后续章节中，我们会介绍 **memos**，它们专门用来解决高成本计算中的问题。
 
-> #### Advanced Topic: Injecting Raw HTML
+> #### 进阶话题：注入原始 HTML
 >
-> The `view` macro provides support for an additional attribute, `inner_html`, which
-> can be used to directly set the HTML contents of any element, wiping out any other
-> children you’ve given it. Note that this does _not_ escape the HTML you provide. You
-> should make sure that it only contains trusted input or that any HTML entities are
-> escaped, to prevent cross-site scripting (XSS) attacks.
+> `view` 宏支持一个额外的属性 `inner_html`，可以用来直接设置任何元素的 HTML 内容，这会清除该元素中已定义的其他子元素。需要注意的是，提供给 `inner_html` 的 HTML **不会**被转义。  
+> 因此，你必须确保内容仅包含可信(trusted)输入，或者对任何 HTML 实体进行转义，以防止跨站脚本攻击 (XSS)。
 >
 > ```rust
 > let html = "<p>This HTML will be injected.</p>";
@@ -191,7 +167,7 @@ for expensive calculations.
 > }
 > ```
 >
-> [Click here for the full `view` macros docs](https://docs.rs/leptos/latest/leptos/macro.view.html).
+> [点击此处查看完整的 `view` 宏文档](https://docs.rs/leptos/latest/leptos/macro.view.html)。
 
 ```admonish sandbox title="Live example" collapsible=true
 

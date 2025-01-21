@@ -1,28 +1,22 @@
-# Iteration
+# 迭代
 
-Whether you’re listing todos, displaying a table, or showing product images,
-iterating over a list of items is a common task in web applications. Reconciling
-the differences between changing sets of items can also be one of the trickiest
-tasks for a framework to handle well.
+在 Web 应用程序中，无论是列出待办事项、显示表格，还是展示产品图片，遍历列表项都是一种常见任务。处理不断变化的数据集合的差异，也是框架需要解决的最棘手的问题之一。
 
-Leptos supports two different patterns for iterating over items:
+Leptos 支持两种不同的方式来遍历列表项：
 
-1. For static views: `Vec<_>`
-2. For dynamic lists: `<For/>`
+1. 对于静态视图: `Vec<_>`
+2. 对于动态列表: `<For/>`
 
-## Static Views with `Vec<_>`
+## 使用 `Vec<_>` 创建静态视图
 
-Sometimes you need to show an item repeatedly, but the list you’re drawing from
-does not often change. In this case, it’s important to know that you can insert
-any `Vec<IV> where IV: IntoView` into your view. In other words, if you can render
-`T`, you can render `Vec<T>`.
+有时需要重复显示一个项目，但数据列表本身并不经常改变。在这种情况下，需要了解可以将任何 `Vec<IV> where IV: IntoView` 插入到视图中。换句话说，如果可以渲染 `T`，就可以渲染 `Vec<T>`。
 
 ```rust
 let values = vec![0, 1, 2];
 view! {
-    // this will just render "012"
+    // 这将渲染为 "012"
     <p>{values.clone()}</p>
-    // or we can wrap them in <li>
+    // 或者将它们包裹在 <li> 标签中
     <ul>
         {values.into_iter()
             .map(|n| view! { <li>{n}</li>})
@@ -31,14 +25,14 @@ view! {
 }
 ```
 
-Leptos also provides a `.collect_view()` helper function that allows you to collect any iterator of `T: IntoView` into `Vec<View>`.
+Leptos 还提供了一个 `.collect_view()` 辅助函数，它允许将任何实现了 `T: IntoView` 的迭代器收集到 `Vec<View>` 中。
 
 ```rust
 let values = vec![0, 1, 2];
 view! {
-    // this will just render "012"
+    // 这将渲染为 "012"
     <p>{values.clone()}</p>
-    // or we can wrap them in <li>
+    // 或者将它们包裹在 <li> 标签中
     <ul>
         {values.into_iter()
             .map(|n| view! { <li>{n}</li>})
@@ -47,22 +41,19 @@ view! {
 }
 ```
 
-The fact that the _list_ is static doesn’t mean the interface needs to be static.
-You can render dynamic items as part of a static list.
+即使 _列表_ 是静态的，界面仍然可以是动态的。你可以在静态列表中渲染动态项目。
 
 ```rust
-// create a list of 5 signals
+// 创建一个包含 5 个信号的列表
 let length = 5;
 let counters = (1..=length).map(|idx| RwSignal::new(idx));
 ```
 
-Note here that instead of calling `signal()` to get a tuple with a reader and a writer,
-here we use `RwSignal::new()` to get a single, read-write signal. This is just more convenient
-for a situation where we’d otherwise be passing the tuples around.
+注意，这里没有调用 `signal()` 来获取包含 reader 和 writer 的元组，而是使用了 `RwSignal::new()` 来获取一个单独的读写信号。这在需要传递元组的情况下更方便。
 
-```
-// each item manages a reactive view
-// but the list itself will never change
+```rust
+// 每个项目管理一个响应式视图
+// 但列表本身永远不会改变
 let counter_buttons = counters
     .map(|(count, set_count)| {
         view! {
@@ -82,40 +73,25 @@ view! {
 }
 ```
 
-You _can_ render a `Fn() -> Vec<_>` reactively as well. But note that this is an unkeyed
-list update: it will reuse the existing DOM elements, and update them with the new values,
-according to their order in the new `Vec<_>`. If you’re just adding and removing items at the 
-end of the list, this works well, but if you are moving items around or inserting items into 
-the middle of the list, this will cause the browser to do more work than it needs to, and may 
-have surprising effects on things like input state and CSS animations. (For more on the “keyed”
-vs. “unkeyed” distinction, and some practical examples, you can read
-[this article](https://www.stefankrause.net/wp/?p=342).)
+也可以响应式地渲染一个 `Fn() -> Vec<_>`。但需要注意，这是一次非键控列表更新：它将复用现有的 DOM 元素，并按照新 `Vec<_>` 中的顺序更新它们的值。如果只是向列表末尾添加或移除项目，这种方式效果很好；但如果移动项目位置或在列表中间插入项目，浏览器将比正常工作进行更多的操作，并可能对输入状态和 CSS 动画产生意想不到的影响。（关于“键控”与“非键控”列表的区别以及一些实际示例，可以阅读[这篇文章](https://www.stefankrause.net/wp/?p=342)。）
 
-Luckily, there’s an efficient way to do keyed list iteration, as well.
+幸运的是，也有一种高效的方式来进行键控列表迭代。
 
-## Dynamic Rendering with the `<For/>` Component
+## 使用 `<For/>` 组件进行动态渲染
 
-The [`<For/>`](https://docs.rs/leptos/latest/leptos/control_flow/fn.For.html) component is a
-keyed dynamic list. It takes three props:
+[`<For/>`](https://docs.rs/leptos/latest/leptos/control_flow/fn.For.html) 组件是一个带键控的动态列表。它接受以下三个属性：
 
-- `each`: a reactive function that returns the items `T` to be iterated over
-- `key`: a key function that takes `&T` and returns a stable, unique key or ID
-- `children`: renders each `T` into a view
+- `each`：一个返回要迭代的项目 `T` 的响应式函数。
+- `key`：一个从 `&T` 中提取稳定且唯一键或 ID 的函数。
+- `children`：将每个 `T` 渲染为视图。
 
-`key` is, well, the key. You can add, remove, and move items within the list. As
-long as each item’s key is stable over time, the framework does not need to rerender
-any of the items, unless they are new additions, and it can very efficiently add,
-remove, and move items as they change. This allows for extremely efficient updates
-to the list as it changes, with minimal additional work.
+`key` 是这个组件的关键。你可以在列表中添加、移除和移动项目。只要每个项目的键在时间上是稳定的，框架就不需要重新渲染任何项目，除非是新增的项目，并且可以非常高效地添加、移除和移动这些项目。这使得在列表发生变化时，能够以极高的效率更新列表，且额外工作量极少。
 
-Creating a good `key` can be a little tricky. You generally do _not_ want to use
-an index for this purpose, as it is not stable—if you remove or move items, their
-indices change.
+创建一个好的 `key` 可能会有点棘手。通常 _不_ 应该使用索引作为键，因为它并不稳定——当移除或移动项目时，它们的索引会改变。
 
-But it’s a great idea to do something like generating a unique ID for each row as
-it is generated, and using that as an ID for the key function.
+一个很好的做法是，在生成每一行时为其生成一个唯一 ID，并将其用作键函数的 ID。
 
-Check out the `<DynamicList/>` component below for an example.
+请参考下面的 `<DynamicList/>` 组件示例，了解具体用法。
 
 ```admonish sandbox title="Live example" collapsible=true
 
