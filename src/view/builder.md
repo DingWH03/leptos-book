@@ -1,48 +1,48 @@
-# No Macros: The View Builder Syntax
+# 无宏：视图构建器语法（View Builder Syntax）
 
-> If you’re perfectly happy with the `view!` macro syntax described so far, you’re welcome to skip this chapter. The builder syntax described in this section is always available, but never required.
+> 如果你对目前为止介绍的 `view!` 宏语法感到满意，可以跳过本章。本节描述的构建器语法始终可用，但并非必须使用。
 
-For one reason or another, many developers would prefer to avoid macros. Perhaps you don’t like the limited `rustfmt` support. (Although, you should check out [`leptosfmt`](https://github.com/bram209/leptosfmt), which is an excellent tool!) Perhaps you worry about the effect of macros on compile time. Perhaps you prefer the aesthetics of pure Rust syntax, or you have trouble context-switching between an HTML-like syntax and your Rust code. Or perhaps you want more flexibility in how you create and manipulate HTML elements than the `view` macro provides.
+出于各种原因，许多开发者希望避免使用宏。也许你不喜欢 `rustfmt` 对宏的有限支持（不过，你可以试试 [`leptosfmt`](https://github.com/bram209/leptosfmt)，这是一个很棒的工具！）。也许你担心宏对编译时间的影响。也许你更喜欢纯 Rust 语法的美感，或者在 HTML 样式的语法和 Rust 代码之间切换时感到困难。或者你希望比 `view` 宏提供的功能更灵活地创建和操作 HTML 元素。
 
-If you fall into any of those camps, the builder syntax may be for you.
+如果你属于上述任何一种情况，那么构建器语法可能适合你。
 
-The `view` macro expands an HTML-like syntax to a series of Rust functions and method calls. If you’d rather not use the `view` macro, you can simply use that expanded syntax yourself. And it’s actually pretty nice!
+`view` 宏会将 HTML 样式的语法展开为一系列 Rust 函数和方法调用。如果你不想使用 `view` 宏，也可以直接使用这种展开后的语法。实际上，这种方式也相当简洁！
 
-First off, if you want you can even drop the `#[component]` macro: a component is just a setup function that creates your view, so you can define a component as a simple function call:
+首先，如果你愿意，甚至可以不使用 `#[component]` 宏：一个组件只是一个用于创建视图的设置函数，因此你可以将组件定义为一个简单的函数调用：
 
 ```rust
 pub fn counter(initial_value: i32, step: u32) -> impl IntoView { }
 ```
 
-Elements are created by calling a function with the same name as the HTML element:
+元素是通过调用与 HTML 元素同名的函数创建的：
 
 ```rust
 p()
 ```
 
-You can add children to the element with [`.child()`](https://docs.rs/leptos/latest/leptos/html/trait.ElementChild.html#tymethod.child), which takes a single child or a tuple or array of types that implement [`IntoView`](https://docs.rs/leptos/latest/leptos/trait.IntoView.html).
+可以通过 [`.child()`](https://docs.rs/leptos/latest/leptos/html/trait.ElementChild.html#tymethod.child) 为元素添加子节点，该方法可以接收一个子节点、一个元组或一个实现 [`IntoView`](https://docs.rs/leptos/latest/leptos/trait.IntoView.html) 的数组。
 
 ```rust
 p().child((em().child("Big, "), strong().child("bold "), "text"))
 ```
 
-Attributes are added with [`.attr()`](https://docs.rs/leptos/latest/leptos/attr/custom/trait.CustomAttribute.html#method.attr). This can take any of the same types that you could pass as an attribute into the view macro (types that implement [`Attribute`](https://docs.rs/leptos/latest/leptos/attr/trait.Attribute.html)).
+属性通过 [`.attr()`](https://docs.rs/leptos/latest/leptos/attr/custom/trait.CustomAttribute.html#method.attr) 添加。该方法可以接收与 `view` 宏中属性支持的相同类型（实现了 [`Attribute`](https://docs.rs/leptos/latest/leptos/attr/trait.Attribute.html) 的类型）。
 
 ```rust
 p().attr("id", "foo")
     .attr("data-count", move || count.get().to_string())
 ```
 
-They can also be added with attribute methods, which are available for any built-in HTML attribute name:
+属性也可以通过特定的属性方法添加，这些方法适用于所有内置的 HTML 属性名称：
 
 ```rust
 p().id("foo")
     .attr("data-count", move || count.get().to_string())
 ```
 
-Similarly, the `class:`, `prop:`, and `style:` syntaxes map directly onto [`.class()`](https://docs.rs/leptos/latest/leptos/attr/global/trait.ClassAttribute.html#tymethod.class), [`.prop()`](https://docs.rs/leptos/latest/leptos/attr/global/trait.PropAttribute.html#tymethod.prop), and [`.style()`](https://docs.rs/leptos/latest/leptos/attr/global/trait.StyleAttribute.html#tymethod.style) methods.
+类似地，`class:`、`prop:` 和 `style:` 语法分别对应于 [`.class()`](https://docs.rs/leptos/latest/leptos/attr/global/trait.ClassAttribute.html#tymethod.class)、[`.prop()`](https://docs.rs/leptos/latest/leptos/attr/global/trait.PropAttribute.html#tymethod.prop) 和 [`.style()`](https://docs.rs/leptos/latest/leptos/attr/global/trait.StyleAttribute.html#tymethod.style) 方法。
 
-Event listeners can be added with [`.on()`](https://docs.rs/leptos/latest/leptos/attr/global/trait.OnAttribute.html#tymethod.on). Typed events found in [`leptos::ev`](https://docs.rs/leptos/latest/leptos/tachys/html/event/index.html) prevent typos in event names and allow for correct type inference in the callback function.
+事件监听器可以通过 [`.on()`](https://docs.rs/leptos/latest/leptos/attr/global/trait.OnAttribute.html#tymethod.on) 添加。在 [`leptos::ev`](https://docs.rs/leptos/latest/leptos/tachys/html/event/index.html) 中定义的类型化事件可以防止事件名称中的拼写错误，并允许在回调函数中正确推断类型。
 
 ```rust
 button()
@@ -50,24 +50,24 @@ button()
     .child("Clear")
 ```
 
-All of this adds up to a very Rusty syntax to build full-featured views, if you prefer this style.
+所有这些功能加起来，如果你喜欢这种风格，它可以让你以一种非常“Rust 风格”的语法构建功能齐全的视图。
 
 ```rust
-/// A simple counter view.
-// A component is really just a function call: it runs once to create the DOM and reactive system
+/// 一个简单的计数器视图。
+// 组件本质上只是一个函数调用：它运行一次，用于创建 DOM 和响应式系统
 pub fn counter(initial_value: i32, step: i32) -> impl IntoView {
     let (count, set_count) = signal(initial_value);
     div().child((
         button()
-            // typed events found in leptos::ev
-            // 1) prevent typos in event names
-            // 2) allow for correct type inference in callbacks
+            // leptos::ev 中的类型化事件
+            // 1) 防止事件名称中的拼写错误
+            // 2) 允许在回调函数中正确推断类型
             .on(ev::click, move |_| set_count.set(0))
-            .child("Clear"),
+            .child("清零"),
         button()
             .on(ev::click, move |_| *set_count.write() -= step)
             .child("-1"),
-        span().child(("Value: ", move || count.get(), "!")),
+        span().child(("值: ", move || count.get(), "!")),
         button()
             .on(ev::click, move |_| *set_count.write() += step)
             .child("+1"),

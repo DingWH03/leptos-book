@@ -1,8 +1,6 @@
-# Component Children
+# 组件子节点（Component Children）
 
-It’s pretty common to want to pass children into a component, just as you can pass
-children into an HTML element. For example, imagine I have a `<FancyForm/>` component
-that enhances an HTML `<form>`. I need some way to pass all its inputs.
+在组件中传递子节点（children）是一个非常常见的需求，就像你可以将子节点传递给 HTML 元素一样。例如，假设有一个 `<FancyForm/>` 组件，用来增强 HTML 的 `<form>`。你需要一种方法将其所有的输入传递进去。
 
 ```rust
 view! {
@@ -18,41 +16,39 @@ view! {
 }
 ```
 
-How can you do this in Leptos? There are basically two ways to pass components to
-other components:
+在 Leptos 中如何实现这一点？基本上有两种方式将子组件传递给其他组件：
 
-1. **render props**: properties that are functions that return a view
-2. the **`children`** prop: a special component property that includes anything
-   you pass as a child to the component.
+1. **渲染属性（render props）**：属性是返回视图的函数。
+2. **`children` 属性**：一个特殊的组件属性，用于包含传递给组件的任何子节点。
 
-In fact, you’ve already seen these both in action in the [`<Show/>`](/view/06_control_flow.html#show) component:
+事实上，你已经在 [`<Show/>`](/view/06_control_flow.html#show) 组件中看到过这两种方式：
 
 ```rust
 view! {
   <Show
-    // `when` is a normal prop
+    // `when` 是一个普通属性
     when=move || value.get() > 5
-    // `fallback` is a "render prop": a function that returns a view
+    // `fallback` 是一个“渲染属性”：一个返回视图的函数
     fallback=|| view! { <Small/> }
   >
-    // `<Big/>` (and anything else here)
-    // will be given to the `children` prop
+    // `<Big/>`（以及这里的其他任何内容）
+    // 将被传递给 `children` 属性
     <Big/>
   </Show>
 }
 ```
 
-Let’s define a component that takes some children and a render prop.
+现在我们定义一个组件，该组件可以接收一些子节点和一个渲染属性。
 
 ```rust
-/// Displays a `render_prop` and some children within markup.
+/// 在标记中显示一个 `render_prop` 和一些子节点。
 #[component]
 pub fn TakesChildren<F, IV>(
-    /// Takes a function (type F) that returns anything that can be
-    /// converted into a View (type IV)
+    /// 接收一个函数（类型 F），返回任何可以
+    /// 转换为视图（类型 IV）的内容
     render_prop: F,
-    /// `children` can take one of several different types, each of which
-    /// is a function that returns some view type
+    /// `children` 可以接收多种不同类型，每种类型
+    /// 都是返回某种视图类型的函数
     children: Children,
 ) -> impl IntoView
 where
@@ -61,53 +57,44 @@ where
 {
     view! {
         <h1><code>"<TakesChildren/>"</code></h1>
-        <h2>"Render Prop"</h2>
+        <h2>"渲染属性"</h2>
         {render_prop()}
         <hr/>
-        <h2>"Children"</h2>
+        <h2>"子节点"</h2>
         {children()}
     }
 }
 ```
 
-`render_prop` and `children` are both functions, so we can call them to generate
-the appropriate views. `children`, in particular, is an alias for
-`Box<dyn FnOnce() -> AnyView>`. (Aren't you glad we named it `Children` instead?)
-The `AnyView` returned here is an opaque, type-erased view: you can’t do anything to
-inspect it. There are a variety of other child types: for example, `ChildrenFragment`
-will return a `Fragment`, which is a collection whose children can be iterated over.
+`render_prop` 和 `children` 都是函数，因此我们可以调用它们以生成相应的视图。特别是 `children` 是 `Box<dyn FnOnce() -> AnyView>` 的别名。（很高兴我们将它命名为 `Children`，对吧？）这里返回的 `AnyView` 是一个不透明的、类型擦除的视图：你不能对其进行任何检查。还有多种其他类型的子节点，例如 `ChildrenFragment` 将返回一个 `Fragment`，它是一个可以迭代其子节点的集合。
 
-> If you need a `Fn` or `FnMut` here because you need to call `children` more than once,
-> we also provide `ChildrenFn` and `ChildrenMut` aliases.
+> 如果需要多次调用 `children`，因此需要一个 `Fn` 或 `FnMut`，我们还提供了 `ChildrenFn` 和 `ChildrenMut` 的别名。
 
-We can use the component like this:
+我们可以像下面这样使用这个组件：
 
 ```rust
 view! {
     <TakesChildren render_prop=|| view! { <p>"Hi, there!"</p> }>
-        // these get passed to `children`
+        // 这些内容将被传递给 `children`
         "Some text"
         <span>"A span"</span>
     </TakesChildren>
 }
 ```
 
-## Manipulating Children
+## 操作子节点（Manipulating Children）
 
-The [`Fragment`](https://docs.rs/leptos/latest/leptos/tachys/view/fragment/struct.Fragment.html) type is
-basically a way of wrapping a `Vec<AnyView>`. You can insert it anywhere into your view.
+[`Fragment`](https://docs.rs/leptos/latest/leptos/tachys/view/fragment/struct.Fragment.html) 类型本质上是 `Vec<AnyView>` 的一个封装。你可以在视图中的任何位置插入它。
 
-But you can also access those inner views directly to manipulate them. For example, here’s
-a component that takes its children and turns them into an unordered list.
+但你也可以直接访问这些内部视图来操作它们。例如，下面是一个组件，它接收子节点并将它们转换为一个无序列表（`<ul>`）。
 
 ```rust
-/// Wraps each child in an `<li>` and embeds them in a `<ul>`.
+/// 将每个子节点包装在 `<li>` 中，并嵌套在 `<ul>` 内。
 #[component]
 pub fn WrapsChildren(children: ChildrenFragment) -> impl IntoView {
-    // children() returns a `Fragment`, which has a
-    // `nodes` field that contains a Vec<View>
-    // this means we can iterate over the children
-    // to create something new!
+    // children() 返回一个 `Fragment`，它包含一个 `nodes` 字段，
+    // 其中存储了一个 `Vec<View>`。
+    // 这意味着我们可以遍历子节点来创建新的内容！
     let children = children()
         .nodes
         .into_iter()
@@ -116,13 +103,13 @@ pub fn WrapsChildren(children: ChildrenFragment) -> impl IntoView {
 
     view! {
         <h1><code>"<WrapsChildren/>"</code></h1>
-        // wrap our wrapped children in a UL
+        // 将包装后的子节点放入一个 UL 中
         <ul>{children}</ul>
     }
 }
 ```
 
-Calling it like this will create a list:
+这样调用该组件会创建一个列表：
 
 ```rust
 view! {

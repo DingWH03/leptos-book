@@ -1,38 +1,25 @@
-# Parent-Child Communication
+# 父子组件通信
 
-You can think of your application as a nested tree of components. Each component
-handles its own local state and manages a section of the user interface, so
-components tend to be relatively self-contained.
+你可以将应用程序看作一个嵌套的组件树。每个组件都处理自己的局部状态并管理用户界面的一部分，因此组件通常是相对独立的。
 
-Sometimes, though, you’ll want to communicate between a parent component and its
-child. For example, imagine you’ve defined a `<FancyButton/>` component that adds
-some styling, logging, or something else to a `<button/>`. You want to use a
-`<FancyButton/>` in your `<App/>` component. But how can you communicate between
-the two?
+不过，有时你可能需要在父组件和子组件之间进行通信。例如，假设你定义了一个 `<FancyButton/>` 组件，为 `<button/>` 添加了一些样式、日志记录或其他功能。你希望在 `<App/>` 组件中使用 `<FancyButton/>`。但是，如何在两者之间进行通信呢？
 
-It’s easy to communicate state from a parent component to a child component. We
-covered some of this in the material on [components and props](./03_components.md).
-Basically if you want the parent to communicate to the child, you can pass a
-[`ReadSignal`](https://docs.rs/leptos/latest/leptos/reactive/signal/struct.ReadSignal.html), a
-[`Signal`](https://docs.rs/leptos/latest/leptos/reactive/wrappers/read/struct.Signal.html), or even a
-[`MaybeSignal`](https://docs.rs/leptos/latest/leptos/reactive/wrappers/read/enum.MaybeSignal.html) as a prop.
+从父组件向子组件传递状态是很简单的。在[组件和属性](./03_components.md)的内容中，我们已经介绍了一些相关内容。基本上，如果你想让父组件与子组件通信，可以将 [`ReadSignal`](https://docs.rs/leptos/latest/leptos/reactive/signal/struct.ReadSignal.html)、[`Signal`](https://docs.rs/leptos/latest/leptos/reactive/wrappers/read/struct.Signal.html) 或 [`MaybeSignal`](https://docs.rs/leptos/latest/leptos/reactive/wrappers/read/enum.MaybeSignal.html) 作为属性(Prop)传递给子组件。
 
-But what about the other direction? How can a child send notifications about events
-or state changes back up to the parent?
+但是反过来呢？如何让子组件将事件或状态变化的通知发送回父组件？
 
-There are four basic patterns of parent-child communication in Leptos.
+在 Leptos 中，父子组件通信有四种基本模式。
 
-## 1. Pass a [`WriteSignal`](https://docs.rs/leptos/latest/leptos/reactive/signal/struct.WriteSignal.html)
+## 1. 传递 [`WriteSignal`](https://docs.rs/leptos/latest/leptos/reactive/signal/struct.WriteSignal.html)
 
-One approach is simply to pass a `WriteSignal` from the parent down to the child, and update
-it in the child. This lets you manipulate the state of the parent from the child.
+一种方法是直接将 `WriteSignal` 从父组件传递给子组件，并在子组件中更新它。这样可以让子组件操作父组件的状态。
 
 ```rust
 #[component]
 pub fn App() -> impl IntoView {
     let (toggled, set_toggled) = signal(false);
     view! {
-        <p>"Toggled? " {toggled}</p>
+        <p>"是否切换？ " {toggled}</p>
         <ButtonA setter=set_toggled/>
     }
 }
@@ -43,29 +30,24 @@ pub fn ButtonA(setter: WriteSignal<bool>) -> impl IntoView {
         <button
             on:click=move |_| setter.update(|value| *value = !*value)
         >
-            "Toggle"
+            "切换"
         </button>
     }
 }
 ```
 
-This pattern is simple, but you should be careful with it: passing around a `WriteSignal`
-can make it hard to reason about your code. In this example, it’s pretty clear when you
-read `<App/>` that you are handing off the ability to mutate `toggled`, but it’s not at
-all clear when or how it will change. In this small, local example it’s easy to understand,
-but if you find yourself passing around `WriteSignal`s like this throughout your code,
-you should really consider whether this is making it too easy to write spaghetti code.
+这种模式很简单，但需要谨慎使用：随意传递 `WriteSignal` 可能会让代码变得难以理解。在这个示例中，当你阅读 `<App/>` 组件时，很明显它将 `toggled` 状态的修改权限交给了 `ButtonA`，但具体在何时或如何发生变化并不直观。在这个小型示例中，这种方式很好理解，但如果你在整个代码库中随意传递 `WriteSignal`，就可能导致代码混乱，难以维护。如果你发现自己经常使用这种模式，应该认真考虑它是否会让代码变得过于复杂和难以管理。
 
-## 2. Use a Callback
+## 2. 使用回调函数(Callback)
 
-Another approach would be to pass a callback to the child: say, `on_click`.
+另一种方法是将一个回调函数传递给子组件，例如 `on_click`。
 
 ```rust
 #[component]
 pub fn App() -> impl IntoView {
     let (toggled, set_toggled) = signal(false);
     view! {
-        <p>"Toggled? " {toggled}</p>
+        <p>"是否切换？ " {toggled}</p>
         <ButtonB on_click=move |_| set_toggled.update(|value| *value = !*value)/>
     }
 }
@@ -74,32 +56,26 @@ pub fn App() -> impl IntoView {
 pub fn ButtonB(on_click: impl FnMut(MouseEvent) + 'static) -> impl IntoView {
     view! {
         <button on:click=on_click>
-            "Toggle"
+            "切换"
         </button>
     }
 }
 ```
 
-You’ll notice that whereas `<ButtonA/>` was given a `WriteSignal` and decided how to mutate it,
-`<ButtonB/>` simply fires an event: the mutation happens back in `<App/>`. This has the advantage
-of keeping local state local, preventing the problem of spaghetti mutation. But it also means
-the logic to mutate that signal needs to exist up in `<App/>`, not down in `<ButtonB/>`. These
-are real trade-offs, not a simple right-or-wrong choice.
+你会注意到，与 `<ButtonA/>` 接收一个 `WriteSignal` 并决定如何修改它不同，`<ButtonB/>` 仅触发了一个事件：状态的修改发生在 `<App/>` 中。这种方法的优点是可以保持状态的局部性，避免了杂乱的状态修改问题。但这也意味着修改信号的逻辑需要存在于 `<App/>` 中，而不是 `<ButtonB/>` 中。这两种方法各有优劣，并不是简单的对错问题。
 
-## 3. Use an Event Listener
+## 3. 使用事件监听器
 
-You can actually write Option 2 in a slightly different way. If the callback maps directly onto
-a native DOM event, you can add an `on:` listener directly to the place you use the component
-in your `view` macro in `<App/>`.
+实际上，你可以稍微调整方法 2 的写法。如果回调函数可以直接映射到原生 DOM 事件，你可以在 `<App/>` 的 `view!` 宏中直接为组件添加 `on:` 监听器。
 
 ```rust
 #[component]
 pub fn App() -> impl IntoView {
     let (toggled, set_toggled) = signal(false);
     view! {
-        <p>"Toggled? " {toggled}</p>
-        // note the on:click instead of on_click
-        // this is the same syntax as an HTML element event listener
+        <p>"是否切换？ " {toggled}</p>
+        // 注意这里使用的是 on:click，而不是 on_click
+        // 这与 HTML 元素的事件监听器语法相同
         <ButtonC on:click=move |_| set_toggled.update(|value| *value = !*value)/>
     }
 }
@@ -107,32 +83,25 @@ pub fn App() -> impl IntoView {
 #[component]
 pub fn ButtonC() -> impl IntoView {
     view! {
-        <button>"Toggle"</button>
+        <button>"切换"</button>
     }
 }
 ```
 
-This lets you write way less code in `<ButtonC/>` than you did for `<ButtonB/>`,
-and still gives a correctly-typed event to the listener. This works by adding an
-`on:` event listener to each element that `<ButtonC/>` returns: in this case, just
-the one `<button>`.
+这样，你在 `<ButtonC/>` 组件中编写的代码比 `<ButtonB/>` 组件要少得多，但仍然能够正确地将事件传递给监听器。其原理是：`on:` 事件监听器会被添加到 `<ButtonC/>` 返回的每个元素上，在本例中就是 `<button>`。
 
-Of course, this only works for actual DOM events that you’re passing directly through
-to the elements you’re rendering in the component. For more complex logic that
-doesn’t map directly onto an element (say you create `<ValidatedForm/>` and want an
-`on_valid_form_submit` callback) you should use Option 2.
+当然，这种方法仅适用于那些可以直接映射到 DOM 事件的情况，也就是你直接将事件传递给组件内部的元素。如果你的逻辑较为复杂，无法直接映射到某个具体的元素（比如创建 `<ValidatedForm/>` 组件，并希望使用 `on_valid_form_submit` 回调），那么你应该使用方法 2。
 
-## 4. Providing a Context
+## 4. 提供上下文（Context）
 
-This version is actually a variant on Option 1. Say you have a deeply-nested component
-tree:
+这种方法实际上是方法 1 的一种变体。假设你有一个深层嵌套的组件树：
 
 ```rust
 #[component]
 pub fn App() -> impl IntoView {
     let (toggled, set_toggled) = signal(false);
     view! {
-        <p>"Toggled? " {toggled}</p>
+        <p>"是否切换？ " {toggled}</p>
         <Layout/>
     }
 }
@@ -141,7 +110,7 @@ pub fn App() -> impl IntoView {
 pub fn Layout() -> impl IntoView {
     view! {
         <header>
-            <h1>"My Page"</h1>
+            <h1>"我的页面"</h1>
         </header>
         <main>
             <Content/>
@@ -165,16 +134,14 @@ pub fn ButtonD() -> impl IntoView {
 
 ```
 
-Now `<ButtonD/>` is no longer a direct child of `<App/>`, so you can’t simply
-pass your `WriteSignal` to its props. You could do what’s sometimes called
-“prop drilling,” adding a prop to each layer between the two:
+现在 `<ButtonD/>` 不再是 `<App/>` 的直接子组件，因此你无法直接通过属性（prop）将 `WriteSignal` 传递给它。你可以尝试通过每一层组件传递属性（通常被称为“属性钻取(grilling)”）：
 
 ```rust
 #[component]
 pub fn App() -> impl IntoView {
     let (toggled, set_toggled) = signal(false);
     view! {
-        <p>"Toggled? " {toggled}</p>
+        <p>"是否切换？ " {toggled}</p>
         <Layout set_toggled/>
     }
 }
@@ -183,7 +150,7 @@ pub fn App() -> impl IntoView {
 pub fn Layout(set_toggled: WriteSignal<bool>) -> impl IntoView {
     view! {
         <header>
-            <h1>"My Page"</h1>
+            <h1>"我的页面"</h1>
         </header>
         <main>
             <Content set_toggled/>
@@ -206,74 +173,53 @@ pub fn ButtonD(set_toggled: WriteSignal<bool>) -> impl IntoView {
 }
 ```
 
-This is a mess. `<Layout/>` and `<Content/>` don’t need `set_toggled`; they just
-pass it through to `<ButtonD/>`. But I need to declare the prop in triplicate.
-This is not only annoying but hard to maintain: imagine we add a “half-toggled”
-option and the type of `set_toggled` needs to change to an `enum`. We have to change
-it in three places!
+这非常混乱！`<Layout/>` 和 `<Content/>` 并不需要 `set_toggled`，它们只是将它传递给 `<ButtonD/>`。但是我们必须在每一层都声明这个属性。这不仅令人烦恼，而且难以维护：想象一下，我们添加了一个“半切换”选项，并且 `set_toggled` 的类型需要更改为一个 `enum`。我们必须在三个地方进行更改！
 
-Isn’t there some way to skip levels?
+难道没有办法跳过中间的层级吗？
 
-There is!
+答案是：有！
 
-### 4.1 The Context API
+### 4.1 Context API（上下文 API）
 
-You can provide data that skips levels by using [`provide_context`](https://docs.rs/leptos/latest/leptos/context/fn.provide_context.html)
-and [`use_context`](https://docs.rs/leptos/latest/leptos/context/fn.use_context.html). Contexts are identified
-by the type of the data you provide (in this example, `WriteSignal<bool>`), and they exist in a top-down
-tree that follows the contours of your UI tree. In this example, we can use context to skip the
-unnecessary prop drilling.
+你可以通过使用 [`provide_context`](https://docs.rs/leptos/latest/leptos/context/fn.provide_context.html) 和 [`use_context`](https://docs.rs/leptos/latest/leptos/context/fn.use_context.html) 提供数据，从而跳过层级传递（prop drilling）。上下文通过提供的数据类型（在本例中为 `WriteSignal<bool>`）进行识别，并存在于一个从上到下的树结构中，树的结构与 UI 树的层次相对应。在这个例子中，我们可以使用上下文来避免不必要的属性传递。
 
 ```rust
 #[component]
 pub fn App() -> impl IntoView {
     let (toggled, set_toggled) = signal(false);
 
-    // share `set_toggled` with all children of this component
+    // 将 `set_toggled` 共享给该组件的所有子组件
     provide_context(set_toggled);
 
     view! {
-        <p>"Toggled? " {toggled}</p>
+        <p>"是否切换？ " {toggled}</p>
         <Layout/>
     }
 }
 
-// <Layout/> and <Content/> omitted
-// To work in this version, drop the `set_toggled` parameter on each
+// 省略 <Layout/> 和 <Content/>
+// 在这个版本中，可以去掉每一层中的 `set_toggled` 参数
 
 #[component]
 pub fn ButtonD() -> impl IntoView {
-    // use_context searches up the context tree, hoping to
-    // find a `WriteSignal<bool>`
-    // in this case, I .expect() because I know I provided it
-    let setter = use_context::<WriteSignal<bool>>().expect("to have found the setter provided");
+    // use_context 会向上搜索上下文树，尝试找到
+    // 一个 `WriteSignal<bool>`。
+    // 在这里使用 .expect()，因为我知道之前已经提供了它
+    let setter = use_context::<WriteSignal<bool>>().expect("找不到提供的 setter");
 
     view! {
         <button
             on:click=move |_| setter.update(|value| *value = !*value)
         >
-            "Toggle"
+            "切换"
         </button>
     }
 }
-
 ```
 
-The same caveats apply to this as to `<ButtonA/>`: passing a `WriteSignal`
-around should be done with caution, as it allows you to mutate state from
-arbitrary parts of your code. But when done carefully, this can be one of
-the most effective techniques for global state management in Leptos: simply
-provide the state at the highest level you’ll need it, and use it wherever
-you need it lower down.
+与 `<ButtonA/>` 中的警告相同：传递 `WriteSignal` 时要谨慎，因为它允许你从代码中的任意部分修改状态。但是，如果小心使用，这可能是 Leptos 中最有效的全局状态管理技术之一：只需在需要状态的最高层次提供它，并在较低层次的任意位置使用它。
 
-Note that there are no performance downsides to this approach. Because you
-are passing a fine-grained reactive signal, _nothing happens_ in the intervening
-components (`<Layout/>` and `<Content/>`) when you update it. You are communicating
-directly between `<ButtonD/>` and `<App/>`. In fact—and this is the power of
-fine-grained reactivity—you are communicating directly between a button click
-in `<ButtonD/>` and a single text node in `<App/>`. It’s as if the components
-themselves don’t exist at all. And, well... at runtime, they don’t. It’s just
-signals and effects, all the way down.
+这种方法没有性能上的缺点。因为你传递的是一个细粒度的响应式信号，所以在更新时，中间的组件（如 `<Layout/>` 和 `<Content/>`）_不会发生任何变化_。你实际上是在 `<ButtonD/>` 和 `<App/>` 之间直接通信。事实上——这就是细粒度响应式的强大之处——你是在 `<ButtonD/>` 中的按钮点击事件和 `<App/>` 中的单个文本节点之间直接通信。这种通信方式使得组件本身看起来几乎不存在。而实际上……在运行时，它们确实不存在。它本质上只是信号与响应效果的组合，从头到尾都如此。
 
 ```admonish sandbox title="Live example" collapsible=true
 
