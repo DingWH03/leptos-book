@@ -1,44 +1,44 @@
-# Working with Signals
+# 信号的使用
 
-So far we’ve used some simple examples of using [`signal`](https://docs.rs/leptos/latest/leptos/reactive/signal/fn.signal.html), which returns a [`ReadSignal`](https://docs.rs/leptos/latest/leptos/reactive/signal/struct.ReadSignal.html) getter and a [`WriteSignal`](https://docs.rs/leptos/latest/leptos/reactive/signal/struct.WriteSignal.html) setter.
+到目前为止，我们已经通过一些简单的例子了解了如何使用 [`signal`](https://docs.rs/leptos/latest/leptos/reactive/signal/fn.signal.html)，它返回一个 [`ReadSignal`](https://docs.rs/leptos/latest/leptos/reactive/signal/struct.ReadSignal.html) 读取器和一个 [`WriteSignal`](https://docs.rs/leptos/latest/leptos/reactive/signal/struct.WriteSignal.html) 写入器。
 
-## Getting and Setting
+## 获取与设置
 
-There are a few basic signal operations:
+以下是一些基本的信号操作：
 
-### Getting
+### 获取值
 
-1. [`.read()`](https://docs.rs/leptos/latest/leptos/reactive/signal/struct.ReadSignal.html#impl-Read-for-T) returns a read guard which dereferences to the value of the signal, and tracks any future changes to the value of the signal reactively. Note that you cannot update the value of the signal until this guard is dropped, or it will cause a runtime error.
-1. [`.with()`](https://docs.rs/leptos/latest/leptos/reactive/signal/struct.ReadSignal.html#impl-With-for-T) takes a function, which receives the current value of the signal by reference (`&T`), and tracks the signal.
-1. [`.get()`](https://docs.rs/leptos/latest/leptos/reactive/signal/struct.ReadSignal.html#impl-Get-for-T) clones the current value of the signal and tracks further changes to the value.
+1. [`.read()`](https://docs.rs/leptos/latest/leptos/reactive/signal/struct.ReadSignal.html#impl-Read-for-T) 返回一个只读保护对象（read guard），可以通过解引用来获取信号的值，并且会对信号值的未来变化进行响应式跟踪。注意，在此保护对象被释放之前，不能更新信号的值，否则会导致运行时错误。
+2. [`.with()`](https://docs.rs/leptos/latest/leptos/reactive/signal/struct.ReadSignal.html#impl-With-for-T) 接收一个函数，该函数会获得信号当前值的引用（`&T`），并对信号进行跟踪。
+3. [`.get()`](https://docs.rs/leptos/latest/leptos/reactive/signal/struct.ReadSignal.html#impl-Get-for-T) 克隆信号的当前值，并对信号值的后续更改进行跟踪。
 
-`.get()` is the most common method of accessing a signal. `.read()` is useful for methods that take an immutable reference, without cloning the value (`my_vec_signal.read().len()`). `.with()` is useful if you need to do more with that reference, but want to make sure you don’t hold onto the lock longer than you need.
+`.get()` 是访问信号最常用的方法。`.read()` 适用于需要通过不可变引用（而不是克隆值）调用的方法（如 `my_vec_signal.read().len()`）。`.with()` 则在需要对该引用执行更多操作时非常有用，并确保不会长时间持有锁。
 
-### Setting
+### 设置值
 
-1. [`.write()`](https://docs.rs/leptos/latest/leptos/reactive/signal/struct.WriteSignal.html#impl-Write-for-WriteSignal%3CT,+S%3E) returns a write guard which is a mutable references to the value of the signal, and notifies any subscribers that they need to update. Note that you cannot read from the value of the signal until this guard is dropped, or it will cause a runtime error.
-1. [`.update()`](https://docs.rs/leptos/latest/leptos/reactive/signal/struct.WriteSignal.html#impl-Update-for-T) takes a function, which receives a mutable reference to the current value of the signal (`&mut T`), and notifies subscribers. (`.update()` doesn’t return the value returned by the closure, but you can use [`.try_update()`](https://docs.rs/leptos/latest/leptos/trait.SignalUpdate.html#tymethod.try_update) if you need to; for example, if you’re removing an item from a `Vec<_>` and want the removed item.)
-1. [`.set()`](https://docs.rs/leptos/latest/leptos/reactive/signal/struct.WriteSignal.html#impl-Set-for-T) replaces the current value of the signal and notifies subscribers.
+1. [`.write()`](https://docs.rs/leptos/latest/leptos/reactive/signal/struct.WriteSignal.html#impl-Write-for-WriteSignal%3CT,+S%3E) 返回一个写保护对象（write guard），它是信号值的一个可变引用，并会通知所有订阅者需要更新。注意，在该保护对象被释放之前，无法读取信号的值，否则会导致运行时错误。
+2. [`.update()`](https://docs.rs/leptos/latest/leptos/reactive/signal/struct.WriteSignal.html#impl-Update-for-T) 接收一个函数，该函数会获得信号当前值的可变引用（`&mut T`），并通知订阅者更新。（`.update()` 不会返回闭包的返回值，但如果需要返回值，可以使用 [`.try_update()`](https://docs.rs/leptos/latest/leptos/trait.SignalUpdate.html#tymethod.try_update)，例如当从 `Vec<_>` 中移除一个元素并希望获取被移除的元素时。）
+3. [`.set()`](https://docs.rs/leptos/latest/leptos/reactive/signal/struct.WriteSignal.html#impl-Set-for-T) 替换信号的当前值，并通知订阅者更新。
 
-`.set()` is most common for setting a new value; `.write()` is very useful for updating a value in place. Just as is the case with `.read()` and `.with()`, `.update()` can be useful when you want to avoid the possibility of holding on the write lock longer than you intended to.
+`.set()` 是设置新值最常用的方法；`.write()` 在原地更新值时非常有用。与 `.read()` 和 `.with()` 类似，`.update()` 在需要避免长时间持有写锁时也非常实用。
 
 ```admonish note
-These traits are based on trait composition and provided by blanket implementations. For example, `Read` is implemented for any type that implements `Track` and `ReadUntracked`. `With` is implemented for any type that implements `Read`. `Get` is implemented for any type that implements `With` and `Clone`. And so on.
+这些特性（traits）基于特性组合，并通过通用实现（blanket implementations）提供。例如，`Read` 为任何实现了 `Track` 和 `ReadUntracked` 的类型提供实现；`With` 为任何实现了 `Read` 的类型提供实现；`Get` 为实现了 `With` 和 `Clone` 的类型提供实现，等等。
 
-Similar relationships exist for `Write`, `Update`, and `Set`.
+类似的关系也适用于 `Write`、`Update` 和 `Set`。
 
-This is worth noting when reading docs: if you only see `ReadUntracked` and `Track` as implemented traits, you will still be able to use `.with()`, `.get()` (if `T: Clone`), and so on.
+在阅读文档时值得注意：如果只看到 `ReadUntracked` 和 `Track` 作为已实现的特性，仍然可以使用 `.with()`、`.get()`（如果 `T: Clone`），等等。
 ```
 
-## Working with Signals
+## 信号的使用
 
-You might notice that `.get()` and `.set()` can be implemented in terms of `.read()` and `.write()`, or `.with()` and `.update()`. In other words, `count.get()` is identical with `count.with(|n| n.clone())` or `count.read().clone()`, and `count.set(1)` is implemented by doing `count.update(|n| *n = 1)` or `*count.write() = 1`.
+你可能会注意到，`.get()` 和 `.set()` 可以通过 `.read()` 和 `.write()`，或者 `.with()` 和 `.update()` 实现。换句话说，`count.get()` 等同于 `count.with(|n| n.clone())` 或 `count.read().clone()`，而 `count.set(1)` 的实现可以通过 `count.update(|n| *n = 1)` 或 `*count.write() = 1` 实现。
 
-But of course, `.get()` and `.set()` are nicer syntax.
+当然，`.get()` 和 `.set()` 的语法更加简洁。
 
-However, there are some very good use cases for the other methods.
+不过，其他方法也有一些非常好的使用场景。
 
-For example, consider a signal that holds a `Vec<String>`.
+例如，考虑一个保存了 `Vec<String>` 的信号。
 
 ```rust
 let (names, set_names) = signal(Vec::new());
@@ -47,9 +47,9 @@ if names.get().is_empty() {
 }
 ```
 
-In terms of logic, this is simple enough, but it’s hiding some significant inefficiencies. Remember that `names.get().is_empty()` clones the value. This means we clone the whole `Vec<String>`, run `is_empty()`, and then immediately throw away the clone.
+从逻辑上看，这段代码很简单，但它隐藏了一些显著的效率问题。请记住，`names.get().is_empty()` 会克隆整个值。这意味着我们克隆了整个 `Vec<String>`，运行了 `is_empty()` 方法，然后立即丢弃了克隆的副本。
 
-Likewise, `set_names` replaces the value with a whole new `Vec<_>`. This is fine, but we might as well just mutate the original `Vec<_>` in place.
+同样，`set_names` 用一个全新的 `Vec<_>` 替换了原有值。这种做法是可以的，但其实我们完全可以直接就地修改原有的 `Vec<_>`。
 
 ```rust
 let (names, set_names) = signal(Vec::new());
@@ -58,11 +58,11 @@ if names.read().is_empty() {
 }
 ```
 
-Now our function simply takes `names` by reference to run `is_empty()`, avoiding that clone, and then mutates the `Vec<_>` in place.
+现在，我们的函数通过引用访问 `names` 来运行 `is_empty()`，避免了克隆操作，并且直接对原有的 `Vec<_>` 进行修改。
 
-## Nightly Syntax
+## Nightly 语法
 
-When using the `nightly` feature and `nightly` syntax, calling a `ReadSignal` as a function is syntax sugar for `.get()`. Calling a `WriteSignal` as a function is syntax sugar for `.set()`. So
+在使用 `nightly` 特性和 `nightly` 语法时，将 `ReadSignal` 作为函数调用是 `.get()` 的语法糖。将 `WriteSignal` 作为函数调用是 `.set()` 的语法糖。因此：
 
 ```rust
 let (count, set_count) = signal(0);
@@ -70,7 +70,7 @@ set_count(1);
 logging::log!(count());
 ```
 
-is the same as
+等同于：
 
 ```rust
 let (count, set_count) = signal(0);
@@ -78,59 +78,59 @@ set_count.set(1);
 logging::log!(count.get());
 ```
 
-This is not just syntax sugar, but makes for a more consistent API by making signals semantically the same thing as functions: see the [Interlude](./interlude_functions.md).
+这不仅仅是语法糖，而是通过将信号语义上与函数统一，使 API 更加一致：详情请参阅 [插曲：函数](./interlude_functions.md)。
 
-## Making signals depend on each other
+## 让信号相互依赖
 
-Often people ask about situations in which some signal needs to change based on some other signal’s value. There are three good ways to do this, and one that’s less than ideal but okay under controlled circumstances.
+经常有人会问，如果一个信号需要根据另一个信号的值进行变化，该如何实现？对此，有三种不错的方法，以及一种虽然不太理想但在特定情况下也可以接受的方法。
 
-### Good Options
+### 推荐的选项
 
-**1) B is a function of A.** Create a signal for A and a derived signal or memo for B.
+**1) B 是 A 的函数。** 为 A 创建一个信号，为 B 创建一个派生信号或 Memo。
 
 ```rust
 // A
 let (count, set_count) = signal(1);
-// B is a function of A
+// B 是 A 的函数
 let derived_signal_double_count = move || count.get() * 2;
-// B is a function of A
+// B 是 A 的函数
 let memoized_double_count = Memo::new(move |_| count.get() * 2);
 ```
 
-> For guidance on whether to use a derived signal or a memo, see the docs for [`Memo`](https://docs.rs/leptos/latest/leptos/reactive/computed/struct.Memo.html)
+> 关于是选择派生信号还是 Memo 的建议，请参阅 [`Memo`](https://docs.rs/leptos/latest/leptos/reactive/computed/struct.Memo.html) 的文档。
 
-**2) C is a function of A and some other thing B.** Create signals for A and B and a derived signal or memo for C.
+**2) C 是 A 和其他事物 B 的函数。** 为 A 和 B 创建信号，为 C 创建一个派生信号或 Memo。
 
 ```rust
 // A
 let (first_name, set_first_name) = signal("Bridget".to_string());
 // B
 let (last_name, set_last_name) = signal("Jones".to_string());
-// C is a function of A and B
+// C 是 A 和 B 的函数
 let full_name = move || format!("{} {}", &*first_name.read(), &*last_name.read());
 ```
 
-**3) A and B are independent signals, but sometimes updated at the same time.** When you make the call to update A, make a separate call to update B.
+**3) A 和 B 是独立的信号，但有时会同时更新。** 在调用更新 A 时，单独调用更新 B。
 
 ```rust
 // A
 let (age, set_age) = signal(32);
 // B
 let (favorite_number, set_favorite_number) = signal(42);
-// use this to handle a click on a `Clear` button
+// 用于处理“清空”按钮的点击事件
 let clear_handler = move |_| {
-  // update both A and B
+  // 同时更新 A 和 B
   set_age.set(0);
   set_favorite_number.set(0);
 };
 ```
 
-### If you really must...
+### 如果你真的必须这样做……
 
-**4) Create an effect to write to B whenever A changes.** This is officially discouraged, for several reasons:
-a) It will always be less efficient, as it means every time A updates you do two full trips through the reactive process. (You set A, which causes the effect to run, as well as any other effects that depend on A. Then you set B, which causes any effects that depend on B to run.)
-b) It increases your chances of accidentally creating things like infinite loops or over-re-running effects. This is the kind of ping-ponging, reactive spaghetti code that was common in the early 2010s and that we try to avoid with things like read-write segregation and discouraging writing to signals from effects.
+**4) 创建一个 Effect，当 A 更改时写入 B。** 这种方法不被推荐，原因如下：
+a) 它的效率总是较低，因为每次 A 更新时都会进行两次完整的响应式流程（更新 A 会触发 effect 的运行，以及任何依赖 A 的其他 effect 的运行；然后更新 B，会触发任何依赖 B 的 effect 的运行）。  
+b) 它增加了意外创建无限循环或过度重新运行 effect 的风险。这种“乒乓式”响应式意大利面条代码在 2010 年代初很常见，但我们通过读取-写入分离等机制试图避免这些问题，并不推荐从 effect 中写入信号。
 
-In most situations, it’s best to rewrite things such that there’s a clear, top-down data flow based on derived signals or memos. But this isn’t the end of the world.
+在大多数情况下，最好通过派生信号或 Memo 的方式，按照清晰的自上而下的数据流重新设计。但即使不这样，也不是不可接受的。
 
-> I’m intentionally not providing an example here. Read the [`Effect`](https://docs.rs/leptos/latest/leptos/reactive/effect/struct.Effect.html) docs to figure out how this would work.
+> 我这里特意没有提供示例。阅读 [`Effect`](https://docs.rs/leptos/latest/leptos/reactive/effect/struct.Effect.html) 文档，了解具体如何实现这种方式。

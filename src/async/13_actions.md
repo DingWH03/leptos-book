@@ -1,44 +1,44 @@
-# Mutating Data with Actions
+# 使用 Actions 修改数据
 
-We’ve talked about how to load `async` data with resources. Resources immediately load data and work closely with `<Suspense/>` and `<Transition/>` components to show whether data is loading in your app. But what if you just want to call some arbitrary `async` function and keep track of what it’s doing?
+我们已经讨论了如何使用资源（resources）加载 `async` 数据。资源会立即加载数据，并与 `<Suspense/>` 和 `<Transition/>` 组件紧密配合，显示应用程序中的数据加载状态。但如果你只想调用一些任意的 `async` 函数并跟踪它的状态，该怎么办？
 
-Well, you could always use [`spawn_local`](https://docs.rs/leptos/latest/leptos/task/fn.spawn_local.html). This allows you to just spawn an `async` task in a synchronous environment by handing the `Future` off to the browser (or, on the server, Tokio or whatever other runtime you’re using). But how do you know if it’s still pending? Well, you could just set a signal to show whether it’s loading, and another one to show the result...
+当然，你可以使用 [`spawn_local`](https://docs.rs/leptos/latest/leptos/task/fn.spawn_local.html)。它允许你在同步环境中启动一个 `async` 任务，将 `Future` 提交给浏览器（或服务器上的 Tokio 或其他运行时）。但是，你怎么知道任务是否仍在进行中呢？你可以设置一个信号来显示加载状态，再设置另一个信号来存储结果……
 
-All of this is true. Or you could use the final `async` primitive: [`Action`](https://docs.rs/leptos/latest/leptos/reactive/actions/struct.Action.html).
+这些当然可以做到。但你也可以使用最后一个异步原语：[`Action`](https://docs.rs/leptos/latest/leptos/reactive/actions/struct.Action.html)。
 
-Actions and resources seem similar, but they represent fundamentally different things. If you’re trying to load data by running an `async` function, either once or when some other value changes, you probably want to use a resource. If you’re trying to occasionally run an `async` function in response to something like a user clicking a button, you probably want to use an `Action`.
+**Actions** 和资源看起来相似，但它们本质上是不同的。如果你试图通过运行 `async` 函数加载数据（无论是一次性还是随着某个值的变化），你可能需要用资源。如果你试图响应用户点击按钮等事件偶尔运行 `async` 函数，那么你可能需要用 Action。
 
-Say we have some `async` function we want to run.
+假设我们有一个 `async` 函数需要运行：
 
 ```rust
 async fn add_todo_request(new_title: &str) -> Uuid {
-    /* do some stuff on the server to add a new todo */
+    /* 在服务器上添加一个新的 todo */
 }
 ```
 
-`Action::new()` takes an `async` function that takes a reference to a single argument, which you could think of as its “input type.”
+`Action::new()` 接受一个 `async` 函数作为参数，该函数需要一个引用作为输入（“输入类型”）。
 
-> The input is always a single type. If you want to pass in multiple arguments, you can do it with a struct or tuple.
+> 输入总是一个单一类型。如果需要传递多个参数，可以使用结构体或元组。
 >
 > ```rust
-> // if there's a single argument, just use that
+> // 单一参数
 > let action1 = Action::new(|input: &String| {
 >    let input = input.clone();
 >    async move { todo!() }
 > });
 >
-> // if there are no arguments, use the unit type `()`
+> // 无参数
 > let action2 = Action::new(|input: &()| async { todo!() });
 >
-> // if there are multiple arguments, use a tuple
+> // 多个参数
 > let action3 = Action::new(
 >   |input: &(usize, String)| async { todo!() }
 > );
 > ```
 >
-> Because the action function takes a reference but the `Future` needs to have a `'static` lifetime, you’ll usually need to clone the value to pass it into the `Future`. This is admittedly awkward but it unlocks some powerful features like optimistic UI. We’ll see a little more about that in future chapters.
+> 因为 Action 函数接受引用，但 `Future` 需要 `'static` 生命周期，所以通常需要克隆值以传递给 `Future`。虽然这有些麻烦，但它解锁了一些强大的功能，比如乐观 UI。我们将在后续章节中详细介绍。
 
-So in this case, all we need to do to create an action is
+在这个例子中，我们可以这样创建一个 Action：
 
 ```rust
 let add_todo_action = Action::new(|input: &String| {
@@ -47,15 +47,15 @@ let add_todo_action = Action::new(|input: &String| {
 });
 ```
 
-Rather than calling `add_todo_action` directly, we’ll call it with `.dispatch()`, as in
+与直接调用 `add_todo_action` 不同，我们会使用 `.dispatch()` 调用它，例如：
 
 ```rust
 add_todo_action.dispatch("Some value".to_string());
 ```
 
-You can do this from an event listener, a timeout, or anywhere; because `.dispatch()` isn’t an `async` function, it can be called from a synchronous context.
+你可以在事件监听器、定时器或任何地方调用它；因为 `.dispatch()` 不是一个异步函数，所以可以在同步上下文中调用。
 
-Actions provide access to a few signals that synchronize between the asynchronous action you’re calling and the synchronous reactive system:
+**Actions 提供了一些信号，可以在调用异步操作和同步反应式系统之间进行同步：**
 
 ```rust
 let submitted = add_todo_action.input(); // RwSignal<Option<String>>
@@ -63,7 +63,7 @@ let pending = add_todo_action.pending(); // ReadSignal<bool>
 let todo_id = add_todo_action.value(); // RwSignal<Option<Uuid>>
 ```
 
-This makes it easy to track the current state of your request, show a loading indicator, or do “optimistic UI” based on the assumption that the submission will succeed.
+这些信号让你可以轻松跟踪请求的当前状态、显示加载指示器或基于提交成功的假设实现“乐观 UI”。
 
 ```rust
 let input_ref = NodeRef::<Input>::new();
@@ -71,7 +71,7 @@ let input_ref = NodeRef::<Input>::new();
 view! {
     <form
         on:submit=move |ev| {
-            ev.prevent_default(); // don't reload the page...
+            ev.prevent_default(); // 阻止页面刷新
             let input = input_ref.get().expect("input to exist");
             add_todo_action.dispatch(input.value());
         }
@@ -84,12 +84,12 @@ view! {
         </label>
         <button type="submit">"Add Todo"</button>
     </form>
-    // use our loading state
+    // 显示加载状态
     <p>{move || pending.get().then_some("Loading...")}</p>
 }
 ```
 
-Now, there’s a chance this all seems a little over-complicated, or maybe too restricted. I wanted to include actions here, alongside resources, as the missing piece of the puzzle. In a real Leptos app, you’ll actually most often use actions alongside server functions, [`ServerAction`](https://docs.rs/leptos/latest/leptos/server/struct.ServerAction.html), and the [`<ActionForm/>`](https://docs.rs/leptos/latest/leptos/form/fn.ActionForm.html) component to create really powerful progressively-enhanced forms. So if this primitive seems useless to you... Don’t worry! Maybe it will make sense later. (Or check out our [`todo_app_sqlite`](https://github.com/leptos-rs/leptos/blob/main/examples/todo_app_sqlite/src/todo.rs) example now.)
+也许你觉得这一切有些复杂，或者过于受限。我在这里介绍 Actions，与资源一起补全了反应式系统的功能拼图。在一个真正的 Leptos 应用中，你会经常将 Actions 与服务器函数 [`ServerAction`](https://docs.rs/leptos/latest/leptos/server/struct.ServerAction.html) 以及 [`<ActionForm/>`](https://docs.rs/leptos/latest/leptos/form/fn.ActionForm.html) 组件结合使用，从而创建功能强大的渐进增强表单。如果你现在觉得这个原语没什么用……不用担心！以后你可能会理解它的价值。（或者现在就查看我们的 [`todo_app_sqlite`](https://github.com/leptos-rs/leptos/blob/main/examples/todo_app_sqlite/src/todo.rs) 示例。）
 
 ```admonish sandbox title="Live example" collapsible=true
 

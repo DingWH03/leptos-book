@@ -1,10 +1,10 @@
-# Projecting Children
+# 子节点投影（Projecting Children）
 
-As you build components you may occasionally find yourself wanting to “project” children through multiple layers of components.
+在构建组件时，你可能会遇到需要通过多层组件“投影”子节点的情况。
 
-## The Problem
+## 问题
 
-Consider the following:
+考虑以下代码：
 
 ```rust
 pub fn NestedShow<F, IV>(fallback: F, children: ChildrenFn) -> impl IntoView
@@ -28,23 +28,23 @@ where
 }
 ```
 
-This is pretty straightforward: if the inner condition is `true`, we want to show `children`. If not, we want to show `fallback`. And if the outer condition is `false`, we just render `()`, i.e., nothing.
+这段代码很直观：如果内部条件为 `true`，我们希望显示 `children`；如果不是，则显示 `fallback`。如果外部条件为 `false`，我们渲染 `()`（即什么都不显示）。
 
-In other words, we want to pass the children of `<NestedShow/>` _through_ the outer `<Show/>` component to become the children of the inner `<Show/>`. This is what I mean by “projection.”
+换句话说，我们希望将 `<NestedShow/>` 的子节点通过外部的 `<Show/>` 组件传递，成为内部 `<Show/>` 的子节点。这就是所谓的“投影”。
 
-This won’t compile.
+但是，这段代码无法编译。
 
 ```
 error[E0525]: expected a closure that implements the `Fn` trait, but this closure only implements `FnOnce`
 ```
 
-Each `<Show/>` needs to be able to construct its `children` multiple times. The first time you construct the outer `<Show/>`’s children, it takes `fallback` and `children` to move them into the invocation of the inner `<Show/>`, but then they're not available for future outer-`<Show/>` children construction.
+每个 `<Show/>` 需要多次构造其 `children`。第一次构造外部 `<Show/>` 的子节点时，它会移动 `fallback` 和 `children` 到内部 `<Show/>` 的调用中，但之后这些值无法用于构造未来的外部 `<Show/>` 子节点。
 
-## The Details
+## 细节
 
-> Feel free to skip ahead to the solution.
+> 如果你只想知道解决方案，可以直接跳到下一节。
 
-If you want to really understand the issue here, it may help to look at the expanded `view` macro. Here’s a cleaned-up version:
+为了真正理解这里的问题，可以查看 `view` 宏的展开形式。以下是简化版：
 
 ```rust
 Show(
@@ -52,15 +52,15 @@ Show(
         .when(|| todo!())
         .fallback(|| ())
         .children({
-            // children and fallback are moved into a closure here
+            // 这里将 `children` 和 `fallback` 移动到闭包中
             ::leptos::children::ToChildren::to_children(move || {
                 Show(
                     ShowProps::builder()
                         .when(|| todo!())
-                        // fallback is consumed here
+                        // 这里消费了 `fallback`
                         .fallback(fallback)
                         .children({
-                            // children is captured here
+                            // 这里捕获了 `children`
                             ::leptos::children::ToChildren::to_children(
                                 move || children(),
                             )
@@ -73,15 +73,15 @@ Show(
 )
 ```
 
-All components own their props; so the `<Show/>` in this case can’t be called because it only has captured references to `fallback` and `children`.
+所有组件都拥有它们的 props；因此在这种情况下 `<Show/>` 无法调用，因为它仅捕获了 `fallback` 和 `children` 的引用。
 
-## Solution
+## 解决方案
 
-However, both `<Suspense/>` and `<Show/>` take `ChildrenFn`, i.e., their `children` should implement the `Fn` type so they can be called multiple times with only an immutable reference. This means we don’t need to own `children` or `fallback`; we just need to be able to pass `'static` references to them.
+`<Suspense/>` 和 `<Show/>` 都接受 `ChildrenFn`，即它们的 `children` 应该实现 `Fn` 类型，这样它们可以通过不可变引用多次调用。这意味着我们不需要拥有 `children` 或 `fallback` 的所有权，只需要能够传递 `'static` 引用即可。
 
-We can solve this problem by using the [`StoredValue`](https://docs.rs/leptos/latest/leptos/reactive/owner/struct.StoredValue.html) primitive. This essentially stores a value in the reactive system, handing ownership off to the framework in exchange for a reference that is, like signals, `Copy` and `'static`, which we can access or modify through certain methods.
+我们可以通过使用 [`StoredValue`](https://docs.rs/leptos/latest/leptos/reactive/owner/struct.StoredValue.html) 原语解决这个问题。`StoredValue` 本质上是将值存储在反应式系统中，将所有权交给框架，并提供类似信号的 `Copy` 和 `'static` 引用，供我们通过特定方法访问或修改。
 
-In this case, it’s really simple:
+以下是改进后的代码：
 
 ```rust
 pub fn NestedShow<F, IV>(fallback: F, children: ChildrenFn) -> impl IntoView
@@ -98,8 +98,6 @@ where
             fallback=|| ()
         >
             <Show
-                // check whether user is verified
-                // by reading from the resource
                 when=move || todo!()
                 fallback=move || fallback.read_value()()
             >
@@ -110,15 +108,15 @@ where
 }
 ```
 
-At the top level, we store both `fallback` and `children` in the reactive scope owned by `LoggedIn`. Now we can simply move those references down through the other layers into the `<Show/>` component and call them there.
+在顶层，我们将 `fallback` 和 `children` 存储在 `LoggedIn` 的反应式作用域中。然后，我们可以将这些引用传递到 `<Show/>` 组件的其他层中，并在那里调用它们。
 
-## A Final Note
+## 最后一点
 
-Note that this works because `<Show/>` only needs an immutable reference to their children (which `.read_value` can give), not ownership.
+这种方法之所以有效，是因为 `<Show/>` 只需要它们子节点的不可变引用（`.read_value()` 可以提供），而不需要所有权。
 
-In other cases, you may need to project owned props through a function that takes `ChildrenFn` and therefore needs to be called more than once. In this case, you may find the `clone:` helper in the`view` macro helpful.
+在某些情况下，你可能需要通过一个接收 `ChildrenFn` 的函数投影具有所有权的 props，并且该函数需要被多次调用。这种情况下，你可以使用 `view` 宏中的 `clone:` 帮助方法。
 
-Consider this example
+以下是一个示例：
 
 ```rust
 #[component]
@@ -151,24 +149,24 @@ pub fn Inmost(name: String) -> impl IntoView {
 }
 ```
 
-Even with `name=name.clone()`, this gives the error
+即使使用了 `name=name.clone()`，也会报错：
 
 ```
 cannot move out of `name`, a captured variable in an `Fn` closure
 ```
 
-It’s captured through multiple levels of children that need to run more than once, and there’s no obvious way to clone it _into_ the children.
+这是因为它通过多层子节点传递，而子节点需要多次运行，并且没有明显的方法将其克隆到子节点中。
 
-In this case, the `clone:` syntax comes in handy. Calling `clone:name` will clone `name` _before_ moving it into `<Inner/>`’s children, which solves our ownership issue.
+这种情况下，`clone:` 语法非常有用。调用 `clone:name` 会在将 `name` 移动到 `<Inner/>` 的子节点之前先克隆它，从而解决所有权问题。
 
 ```rust
 view! {
-	<Outer>
-		<Inner clone:name>
-			<Inmost name=name.clone()/>
-		</Inner>
-	</Outer>
+    <Outer>
+        <Inner clone:name>
+            <Inmost name=name.clone()/>
+        </Inner>
+    </Outer>
 }
 ```
 
-These issues can be a little tricky to understand or debug, because of the opacity of the `view` macro. But in general, they can always be solved.
+由于 `view` 宏的复杂性，这类问题可能会让人难以理解或调试。但总体来说，总有解决方法。

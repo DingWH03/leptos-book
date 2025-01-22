@@ -1,53 +1,52 @@
-# Responding to Changes with Effects
+# 用 Effects 响应变化
 
-We’ve made it this far without having mentioned half of the reactive system: effects.
+我们已经走到了这一步，却还没有提到反应式系统的一半内容：**Effects（效果）**。
 
-Reactivity works in two halves: updating individual reactive values (“signals”) notifies the pieces of code that depend on them (“effects”) that they need to run again. These two halves of the reactive system are inter-dependent. Without effects, signals can change within the reactive system but never be observed in a way that interacts with the outside world. Without signals, effects run once but never again, as there’s no observable value to subscribe to. Effects are quite literally “side effects” of the reactive system: they exist to synchronize the reactive system with the non-reactive world outside it.
+反应性由两部分组成：更新单个反应性值（“信号”）会通知依赖于它们的代码片段（“效果”）需要重新运行。这两部分是相互依赖的。没有效果，信号可以在反应式系统中发生变化，但无法被外界观察到，也无法与外界交互。没有信号，效果只会运行一次，之后再也不会运行，因为没有可观察的值可以订阅。**效果实际上是反应式系统的“副作用”**：它们的存在是为了将反应式系统与外部的非反应式世界同步。
 
-The renderer uses effects to update parts of the DOM in response to changes in signals. You can create your own effects to synchronize the reactive system with the outside world in other ways.
+渲染器使用效果来根据信号的变化更新 DOM 的某些部分。你也可以创建自己的效果，以其他方式将反应式系统与外界同步。
 
-[`Effect::new`](https://docs.rs/leptos/latest/leptos/reactive/effect/struct.Effect.html) takes a function as its argument. It runs this function on the next “tick” of the reactive system. (So for example, if you use it in a component, it will run just _after_ that component has been rendered.) If you access any reactive signal inside that function, it registers the fact that the effect depends on that signal. Whenever one of the signals that the effect depends on changes, the effect runs again.
+[`Effect::new`](https://docs.rs/leptos/latest/leptos/reactive/effect/struct.Effect.html) 接受一个函数作为参数。它会在反应式系统的下一个“tick”中运行该函数。（例如，如果在组件中使用它，它会在组件渲染后**立即**运行。）如果你在这个函数中访问了任何反应性信号，效果会记录下该效果依赖于这些信号的事实。只要效果依赖的信号之一发生变化，效果就会再次运行。
 
 ```rust
 let (a, set_a) = signal(0);
 let (b, set_b) = signal(0);
 
 Effect::new(move |_| {
-  // immediately prints "Value: 0" and subscribes to `a`
+  // 立即打印 "Value: 0"，并订阅 `a`
   logging::log!("Value: {}", a.get());
 });
 ```
 
-The effect function is called with an argument containing whatever value it returned the last time it ran. On the initial run, this is `None`.
+效果函数会接收一个参数，参数包含效果上次运行时返回的值。在初次运行时，这个值为 `None`。
 
-By default, effects **do not run on the server**. This means you can call browser-specific APIs within the effect function without causing issues. If you need an effect to run on the server, use [`Effect::new_isomorphic`](https://docs.rs/leptos/latest/leptos/reactive/effect/struct.Effect.html#method.new_isomorphic).
+默认情况下，效果**不会在服务器端运行**。这意味着你可以在效果函数中调用浏览器特定的 API 而不会引发问题。如果需要效果在服务器端运行，可以使用 [`Effect::new_isomorphic`](https://docs.rs/leptos/latest/leptos/reactive/effect/struct.Effect.html#method.new_isomorphic)。
 
-## Auto-tracking and Dynamic Dependencies
+## 自动追踪和动态依赖
 
-If you’re familiar with a framework like React, you might notice one key difference. React and similar frameworks typically require you to pass a “dependency array,” an explicit set of variables that determine when the effect should rerun.
+如果你熟悉像 React 这样的框架，你可能会注意到一个关键的区别。React 和类似框架通常需要你提供一个“依赖数组”，明确指定哪些变量决定效果何时重新运行。
 
-Because Leptos comes from the tradition of synchronous reactive programming, we don’t need this explicit dependency list. Instead, we automatically track dependencies depending on which signals are accessed within the effect.
+由于 Leptos 源自同步反应式编程的传统，我们不需要这个显式的依赖列表。相反，我们会根据效果中访问的信号自动追踪依赖。
 
-This has two effects (no pun intended). Dependencies are:
+这种方式有两个效果（不是双关）：
 
-1. **Automatic**: You don’t need to maintain a dependency list, or worry about what should or shouldn’t be included. The framework simply tracks which signals might cause the effect to rerun, and handles it for you.
-2. **Dynamic**: The dependency list is cleared and updated every time the effect runs. If your effect contains a conditional (for example), only signals that are used in the current branch are tracked. This means that effects rerun the absolute minimum number of times.
+1. **自动化**：你无需维护一个依赖列表，也不用担心哪些应该或不应该被包括。框架会自动追踪哪些信号可能导致效果重新运行，并处理这些依赖。
+2. **动态化**：依赖列表会在每次效果运行时清除并更新。如果效果包含条件语句（例如），只有当前分支中使用的信号会被追踪。这意味着效果只会以绝对最小的次数重新运行。
 
-> If this sounds like magic, and if you want a deep dive into how automatic dependency tracking works, [check out this video](https://www.youtube.com/watch?v=GWB3vTWeLd4). (Apologies for the low volume!)
+> 如果这听起来像是魔法，并且你想深入了解自动依赖追踪的原理，可以[观看这个视频](https://www.youtube.com/watch?v=GWB3vTWeLd4)。（音量较低，请见谅！）
 
-## Effects as Zero-Cost-ish Abstraction
+## Effects 作为接近零成本的抽象
 
-While they’re not a “zero-cost abstraction” in the most technical sense—they require some additional memory use, exist at runtime, etc.—at a higher level, from the perspective of whatever expensive API calls or other work you’re doing within them, effects are a zero-cost abstraction. They rerun the absolute minimum number of times necessary, given how you’ve described them.
+从技术上讲，效果并非完全“零成本抽象”——它们需要一些额外的内存，并在运行时存在等。然而，从更高层次的视角来看，对于你在其中进行的任何昂贵的 API 调用或其他操作，效果可以视为零成本抽象。它们只会以必要的最小次数重新运行。
 
-Imagine that I’m creating some kind of chat software, and I want people to be able to display their full name, or just their first name, and to notify the server whenever their name changes:
+假设我正在创建某种聊天软件，我希望用户可以显示全名或仅显示名字，并在名字更改时通知服务器：
 
 ```rust
 let (first, set_first) = signal(String::new());
 let (last, set_last) = signal(String::new());
 let (use_last, set_use_last) = signal(true);
 
-// this will add the name to the log
-// any time one of the source signals changes
+// 每当一个源信号发生变化，这段代码会将名字记录到日志中
 Effect::new(move |_| {
     logging::log!(
         "{}", if use_last.get() {
@@ -59,34 +58,34 @@ Effect::new(move |_| {
 });
 ```
 
-If `use_last` is `true`, effect should rerun whenever `first`, `last`, or `use_last` changes. But if I toggle `use_last` to `false`, a change in `last` will never cause the full name to change. In fact, `last` will be removed from the dependency list until `use_last` toggles again. This saves us from sending multiple unnecessary requests to the API if I change `last` multiple times while `use_last` is still `false`.
+如果 `use_last` 是 `true`，效果会在 `first`、`last` 或 `use_last` 发生变化时重新运行。但如果我将 `use_last` 切换为 `false`，`last` 的变化将不会触发全名的变化。实际上，`last` 会从依赖列表中移除，直到 `use_last` 再次切换为 `true`。这避免了在 `use_last` 为 `false` 时多次更改 `last` 导致的多余 API 请求。
 
-## To create an effect, or not to create an effect?
+## 是否创建效果？
 
-Effects are intended to synchronize the reactive system with the non-reactive world outside, not to synchronize between different reactive values. In other words: using an effect to read a value from one signal and set it in another is always sub-optimal.
+效果的目的是将反应式系统与外部的非反应式世界同步，而不是在不同的反应式值之间同步。换句话说：使用效果从一个信号读取值并将其设置到另一个信号中总是次优的。
 
-If you need to define a signal that depends on the value of other signals, use a derived signal or a [`Memo`](https://docs.rs/leptos/latest/leptos/reactive/computed/struct.Memo.html). Writing to a signal inside an effect isn’t the end of the world, and it won’t cause your computer to light on fire, but a derived signal or memo is always better—not only because the dataflow is clear, but because the performance is better.
+如果需要定义一个依赖于其他信号值的信号，可以使用派生信号或 [`Memo`](https://docs.rs/leptos/latest/leptos/reactive/computed/struct.Memo.html)。在效果中写入信号不会引发灾难（例如，电脑不会着火），但派生信号或 `memo` 总是更好的选择——不仅因为数据流清晰，而且性能更好。
 
 ```rust
 let (a, set_a) = signal(0);
 
-// ⚠️ not great
+// ⚠️ 不太好
 let (b, set_b) = signal(0);
 Effect::new(move |_| {
     set_b.set(a.get() * 2);
 });
 
-// ✅ woo-hoo!
+// ✅ 更优选择！
 let b = move || a.get() * 2;
 ```
 
-If you need to synchronize some reactive value with the non-reactive world outside—like a web API, the console, the filesystem, or the DOM—writing to a signal in an effect is a fine way to do that. In many cases, though, you’ll find that you’re really writing to a signal inside an event listener or something else, not inside an effect. In these cases, you should check out [`leptos-use`](https://leptos-use.rs/) to see if it already provides a reactive wrapping primitive to do that!
+如果需要将某个反应式值与外部的非反应式世界（例如 Web API、控制台、文件系统或 DOM）同步，在效果中写入信号是可以接受的。然而在很多情况下，你实际上是在事件监听器或其他地方写入信号，而不是在效果中。在这些情况下，可以查看 [`leptos-use`](https://leptos-use.rs/) 是否已经提供了一个反应式封装原语来完成这一任务！
 
-> If you’re curious for more information about when you should and shouldn’t use `create_effect`, [check out this video](https://www.youtube.com/watch?v=aQOFJQ2JkvQ) for a more in-depth consideration!
+> 如果你想进一步了解何时应该或不应该使用 `create_effect`，[可以观看这个视频](https://www.youtube.com/watch?v=aQOFJQ2JkvQ)，以获得更深入的理解！
 
-## Effects and Rendering
+## Effects 与渲染
 
-We’ve managed to get this far without mentioning effects because they’re built into the Leptos DOM renderer. We’ve seen that you can create a signal and pass it into the `view` macro, and it will update the relevant DOM node whenever the signal changes:
+我们已经讨论了这么多，却几乎没有提到效果，因为它们被内置到了 Leptos 的 DOM 渲染器中。我们已经看到，你可以创建一个信号并将其传递到 `view!` 宏中，信号变化时相关的 DOM 节点会更新：
 
 ```rust
 let (count, set_count) = signal(0);
@@ -96,37 +95,37 @@ view! {
 }
 ```
 
-This works because the framework essentially creates an effect wrapping this update. You can imagine Leptos translating this view into something like this:
+这之所以有效，是因为框架实际上为这个更新创建了一个效果。你可以想象 Leptos 将这个视图翻译成如下代码：
 
 ```rust
 let (count, set_count) = signal(0);
 
-// create a DOM element
+// 创建一个 DOM 元素
 let document = leptos::document();
 let p = document.create_element("p").unwrap();
 
-// create an effect to reactively update the text
+// 创建一个效果以反应式更新文本
 Effect::new(move |prev_value| {
-    // first, access the signal’s value and convert it to a string
+    // 首先，访问信号的值并将其转换为字符串
     let text = count.get().to_string();
 
-    // if this is different from the previous value, update the node
+    // 如果与之前的值不同，则更新节点
     if prev_value != Some(text) {
         p.set_text_content(&text);
     }
 
-    // return this value so we can memoize the next update
+    // 返回此值，以便对下一次更新进行记忆
     text
 });
 ```
 
-Every time `count` is updated, this effect will rerun. This is what allows reactive, fine-grained updates to the DOM.
+每次 `count` 更新时，这个效果都会重新运行。这是实现对 DOM 进行细粒度更新的关键。
 
-## Explicit Tracking with `Effect::watch()`
+## 使用 `Effect::watch()` 进行显式追踪
 
-In addition to `Effect::new()`, Leptos provides an [`Effect::watch()`](https://docs.rs/leptos/latest/leptos/reactive/effect/struct.Effect.html#method.watch) function, which can be used to separate tracking and responding to changes by explicitly passing in a set of values to track.
+除了 `Effect::new()`，Leptos 还提供了 [`Effect::watch()`](https://docs.rs/leptos/latest/leptos/reactive/effect/struct.Effect.html#method.watch) 方法，可以通过显式传递值集来分离追踪和响应变化。
 
-`watch` takes a first argument, which is reactively tracked, and a second, which is not. Whenever a reactive value in its `deps` argument is changed, the `callback` is run. `watch` returns an `Effect`, which can be called with `.stop()` to stop tracking the dependencies.
+`watch` 的第一个参数是反应式追踪的，第二个参数不是。每当 `deps` 参数中的反应式值发生变化时，`callback` 就会运行。`watch` 返回一个 `Effect`，可以通过 `.stop()` 停止追踪依赖。
 
 ```rust
 let (num, set_num) = signal(0);
@@ -139,11 +138,11 @@ let effect = Effect::watch(
     false,
 );
 
-set_num.set(1); // > "Number: 1; Prev: Some(0)"
+set_num.set(1); // 输出： "Number: 1; Prev: Some(0)"
 
-effect.stop(); // stop watching
+effect.stop(); // 停止追踪
 
-set_num.set(2); // (nothing happens)
+set_num.set(2); // （没有输出）
 ```
 
 ```admonish sandbox title="Live example" collapsible=true

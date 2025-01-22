@@ -1,11 +1,9 @@
-# Working with `async`
+# 使用 `async`
 
-So far we’ve only been working with synchronous user interfaces: You provide some input,
-the app immediately processes it and updates the interface. This is great, but is a tiny
-subset of what web applications do. In particular, most web apps have to deal with some kind of asynchronous data loading, usually loading something from an API.
+到目前为止，我们一直在处理同步用户界面：你提供一些输入，应用程序立即处理并更新界面。这很棒，但只是 Web 应用程序功能中的很小一部分。尤其是，大多数 Web 应用程序需要处理某种异步数据加载，通常是从 API 加载数据。
 
-Asynchronous data is notoriously hard to integrate with the synchronous parts of your code because of problems of “function coloring.”
+将异步数据与代码中的同步部分集成是出了名的困难，因为它涉及“函数着色”问题。
 
-In the following chapters, we’ll see a few reactive primitives for working with async data. But it’s important to note at the very beginning: If you just want to do some asynchronous work, Leptos provides a cross-platform [`spawn_local`](https://docs.rs/leptos/latest/leptos/task/fn.spawn_local.html) function that makes it easy to run a `Future`. If one of the primitives discussed in the rest of this section doesn’t seem to do what you want, consider combining `spawn_local` with setting a signal.
+在接下来的章节中，我们将看到一些用于处理异步数据的反应式原语。但首先需要注意：如果你只是想进行一些异步操作，Leptos 提供了一个跨平台的 [`spawn_local`](https://docs.rs/leptos/latest/leptos/task/fn.spawn_local.html) 函数，它可以轻松运行一个 `Future`。如果接下来的原语中没有满足需求的，可以考虑将 `spawn_local` 与信号结合使用。
 
-While the primitives to come are very useful, and even necessary in some cases, people sometimes run into situations in which they really just need to spawn a task and wait for it to finish before doing something else. Use `spawn_local` in those situations!
+尽管接下来的原语非常有用，甚至在某些情况下是必需的，但人们有时确实只需要启动一个任务并在完成后再执行其他操作。在这种情况下，请使用 `spawn_local`！

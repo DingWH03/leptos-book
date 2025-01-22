@@ -1,14 +1,12 @@
-# Interlude: Reactivity and Functions
+# 插曲：反应性与函数
 
-One of our core contributors said to me recently: “I never used closures this often
-until I started using Leptos.” And it’s true. Closures are at the heart of any Leptos
-application. It sometimes looks a little silly:
+我们的核心贡献者之一最近对我说：“在用 Leptos 之前，我从未如此频繁地使用闭包。”这确实是事实。闭包是任何 Leptos 应用程序的核心。有时看起来有点滑稽：
 
 ```rust
-// a signal holds a value, and can be updated
+// 一个信号持有一个值，可以被更新
 let (count, set_count) = signal(0);
 
-// a derived signal is a function that accesses other signals
+// 一个派生信号是一个访问其他信号的函数
 let double_count = move || count.get() * 2;
 let count_is_odd = move || count.get() & 1 == 1;
 let text = move || if count_is_odd() {
@@ -17,8 +15,8 @@ let text = move || if count_is_odd() {
     "even"
 };
 
-// an effect automatically tracks the signals it depends on
-// and reruns when they change
+// 一个效果会自动追踪它依赖的信号
+// 并在信号发生变化时重新运行
 Effect::new(move |_| {
     logging::log!("text = {}", text());
 });
@@ -28,28 +26,28 @@ view! {
 }
 ```
 
-Closures, closures everywhere!
+闭包，到处都是闭包！
 
-But why?
+但为什么呢？
 
-## Functions and UI Frameworks
+## 函数与 UI 框架
 
-Functions are at the heart of every UI framework. And this makes perfect sense. Creating a user interface is basically divided into two phases:
+函数是每个 UI 框架的核心。这完全合情合理。创建用户界面基本上可以分为两个阶段：
 
-1. initial rendering
-2. updates
+1. 初始渲染
+2. 更新
 
-In a web framework, the framework does some kind of initial rendering. Then it hands control back over to the browser. When certain events fire (like a mouse click) or asynchronous tasks finish (like an HTTP request finishing), the browser wakes the framework back up to update something. The framework runs some kind of code to update your user interface, and goes back asleep until the browser wakes it up again.
+在 Web 框架中，框架会进行某种初始渲染。然后将控制权交还给浏览器。当某些事件（如鼠标点击）触发或异步任务（如 HTTP 请求完成）结束时，浏览器会唤醒框架以更新内容。框架运行某些代码来更新用户界面，然后再次休眠，直到浏览器再次唤醒它。
 
-The key phrase here is “runs some kind of code.” The natural way to “run some kind of code” at an arbitrary point in time—in Rust or in any other programming language—is to call a function. And in fact every UI framework is based on rerunning some kind of function over and over:
+这里的关键短语是“运行某些代码”。在 Rust 或任何其他编程语言中，在任意时间点“运行某些代码”的自然方式是调用一个函数。实际上，每个 UI 框架都基于某种函数的反复运行：
 
-1. virtual DOM (VDOM) frameworks like React, Yew, or Dioxus rerun a component or render function over and over, to generate a virtual DOM tree that can be reconciled with the previous result to patch the DOM
-2. compiled frameworks like Angular and Svelte divide your component templates into “create” and “update” functions, rerunning the update function when they detect a change to the component’s state
-3. in fine-grained reactive frameworks like SolidJS, Sycamore, or Leptos, _you_ define the functions that rerun
+1. **虚拟 DOM（VDOM）框架**（如 React、Yew 或 Dioxus）反复运行组件或渲染函数，以生成一个虚拟 DOM 树，该树可以与之前的结果对比并更新 DOM。
+2. **编译型框架**（如 Angular 和 Svelte）将组件模板划分为“创建”和“更新”函数，并在检测到组件状态发生变化时运行更新函数。
+3. **细粒度反应式框架**（如 SolidJS、Sycamore 或 Leptos），由开发者自己定义重新运行的函数。
 
-That’s what all our components are doing.
+这就是我们所有组件在做的事情。
 
-Take our typical `<SimpleCounter/>` example in its simplest form:
+以下是我们常见的 `<SimpleCounter/>` 示例的最简形式：
 
 ```rust
 #[component]
@@ -66,19 +64,19 @@ pub fn SimpleCounter() -> impl IntoView {
 }
 ```
 
-The `SimpleCounter` function itself runs once. The `value` signal is created once. The framework hands off the `increment` function to the browser as an event listener. When you click the button, the browser calls `increment`, which updates `value` via `set_value`. And that updates the single text node represented in our view by `{value}`.
+`SimpleCounter` 函数本身只运行一次。`value` 信号只创建一次。框架将 `increment` 函数作为事件监听器交给浏览器。当你点击按钮时，浏览器调用 `increment`，通过 `set_value` 更新 `value`，从而更新视图中由 `{value}` 表示的单个文本节点。
 
-Functions are key to reactivity. They provide the framework with the ability to rerun the smallest possible unit of your application in response to a change.
+函数是反应性的关键。它们为框架提供了在响应变化时重新运行应用程序最小单位的能力。
 
-So remember two things:
+所以记住两点：
 
-1. Your component function is a setup function, not a render function: it only runs once.
-2. For values in your view template to be reactive, they must be reactive functions: either signals or closures that capture and read from signals.
+1. 你的组件函数是一个**初始化函数**，而不是渲染函数：它只运行一次。
+2. 对于模板中的值要具有反应性，它们必须是反应性函数：要么是信号，要么是捕获并读取信号的闭包。
 
 ```admonish note
-This is actually the primary difference between the stable and nightly versions of Leptos. As you may know, using the nightly compiler and the `nightly` feature allows you to call a signal directly, as a function: so, `value()` instead of `value.get()`.
+这实际上是 Leptos 稳定版和夜间版的主要区别之一。如你所知，使用夜间编译器和 `nightly` 功能可以直接调用信号作为函数：比如 `value()` 替代 `value.get()`。
 
-But this isn’t just syntax sugar. It allows for an extremely consistent semantic model: Reactive things are functions. Signals are accessed by calling functions. To say “give me a signal as an argument” you can take anything that `impl Fn() -> T`. And this function-based interface makes no distinction between signals, memos, and derived signals: any of them can be accessed by calling them as functions.
+但这不仅仅是语法糖。它允许一个极为一致的语义模型：反应性事物就是函数。信号通过调用函数访问。要表示“传递一个信号作为参数”，你可以接收任何实现 `impl Fn() -> T` 的东西。而这种基于函数的接口不会区分信号、`memo` 或派生信号：它们都可以通过函数调用访问。
 
-Unfortunately implementing the `Fn` traits on arbitrary structs like signals requires nightly Rust, although this particular feature has mostly just languished and is not likely to change (or be stabilized) any time soon. Many people avoid nightly, for one reason or another. So, over time we’ve moved the defaults for things like documentation toward stable. Unfortunately, this makes the simple mental model of “signals are functions” a bit less straightforward.
+不幸的是，在自定义结构（如信号）上实现 `Fn` 特性需要夜间版 Rust，尽管这个功能已经搁置很久且可能短期内不会稳定。由于种种原因，许多人会避免使用夜间版。因此，随着时间推移，我们的文档等默认内容都更倾向于稳定版。然而，这让“信号是函数”这个简单的心智模型稍显复杂。
 ```

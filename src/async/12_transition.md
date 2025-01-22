@@ -1,10 +1,10 @@
 # `<Transition/>`
 
-You’ll notice in the `<Suspense/>` example that if you keep reloading the data, it keeps flickering back to `"Loading..."`. Sometimes this is fine. For other times, there’s [`<Transition/>`](https://docs.rs/leptos/latest/leptos/suspense/fn.Transition.html).
+在 `<Suspense/>` 的示例中，如果你不断重新加载数据，界面会反复闪回到 `"Loading..."`。有时这没问题，但在某些情况下，可以使用 [`<Transition/>`](https://docs.rs/leptos/latest/leptos/suspense/fn.Transition.html)。
 
-`<Transition/>` behaves exactly the same as `<Suspense/>`, but instead of falling back every time, it only shows the fallback the first time. On all subsequent loads, it continues showing the old data until the new data are ready. This can be really handy to prevent the flickering effect, and to allow users to continue interacting with your application.
+`<Transition/>` 的行为与 `<Suspense/>` 完全相同，但不同之处在于，它只在第一次加载时显示备用内容。在后续加载时，它会继续显示旧数据，直到新数据加载完成。这对于避免闪烁效果并允许用户继续与应用程序交互非常有用。
 
-This example shows how you can create a simple tabbed contact list with `<Transition/>`. When you select a new tab, it continues showing the current contact until the new data loads. This can be a much better user experience than constantly falling back to a loading message.
+以下示例展示了如何使用 `<Transition/>` 创建一个简单的选项卡式联系人列表。当你选择一个新选项卡时，界面会继续显示当前联系人，直到新数据加载完成。这比反复显示加载消息提供了更好的用户体验。
 
 ```admonish sandbox title="Live example" collapsible=true
 

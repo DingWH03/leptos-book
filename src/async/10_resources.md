@@ -1,70 +1,67 @@
-# Loading Data with Resources
+# 使用 Resources 加载数据
 
-Resources are reactive wrappers for asynchronous tasks, which allow you to integrate an asynchronous `Future` into the synchronous reactive system. 
+**Resources** 是用于异步任务的反应式封装，可以将异步的 `Future` 集成到同步的反应式系统中。它允许你加载异步数据，并以同步或异步的方式访问这些数据。你可以像普通的 `Future` 一样对资源使用 `.await`，这会对其进行追踪。你也可以使用 `.get()` 或其他信号访问方法访问资源，就像资源是一个返回 `Some(T)`（表示已完成）或 `None`（表示仍在等待）的信号一样。
 
-They effectively allow you to load some async data, and then reactively access it either synchronously or asynchronously. You can `.await` a resource like an ordinary `Future`, and this will track it. But you can also access a resource with `.get()` and other signal access methods, as if a resource were a signal that returns `Some(T)` if it has resolved, and `None` if it’s still pending.
+Resources 主要有两种类型：`Resource` 和 `LocalResource`。如果你使用服务器端渲染（SSR，本书稍后会讨论），应默认使用 `Resource`。如果你使用的是仅客户端渲染（CSR）并依赖 `!Send` API（例如许多浏览器 API），或者尽管使用 SSR 但有些异步任务只能在浏览器上完成（例如访问异步浏览器 API），应使用 `LocalResource`。
 
-Resources come in two primary flavors: `Resource` and `LocalResource`. If you’re using server-side rendering (which this book will discuss later), you should default to using `Resource`. If you’re using client-side rendering with a `!Send` API (like many of the browser APIs), or if you have are using SSR but have some async task that can only be done on the browser (for example, accessing an async browser API) then you should use `LocalResource`.
+## 本地资源（Local Resources）
 
-## Local Resources
+`LocalResource::new()` 接受一个参数：一个返回 `Future` 的“fetcher”函数。
 
-`LocalResource::new()` takes a single argument: a “fetcher” function that returns a `Future`.
-
-The `Future` can be an `async` block, the result of an `async fn` call, or any other Rust `Future`. The function will work like a derived signal or the other reactive closures that we’ve seen so far: you can read signals inside it, and whenever the signal changes, the function will run again, creating a new `Future` to run.
+该 `Future` 可以是一个 `async` 块、`async fn` 调用的结果，或任何其他 Rust `Future`。其行为类似于派生信号或其他我们已见过的反应式闭包：你可以在其中读取信号，并且每当信号发生变化时，该函数都会重新运行，创建一个新的 `Future` 来执行。
 
 ```rust
-// this count is our synchronous, local state
+// `count` 是我们的同步本地状态
 let (count, set_count) = signal(0);
 
-// tracks `count`, and reloads by calling `load_data`
-// whenever it changes
+// 追踪 `count`，每当 `count` 变化时调用 `load_data`
 let async_data = LocalResource::new(move || load_data(count.get()));
 ```
 
-Creating a resource immediately calls its fetcher and begins polling the `Future`. Reading from a resource will return `None` until the async task completes, at which point it will notify its subscribers, and now have `Some(value)`.
+创建资源时会立即调用其 fetcher 并开始轮询 `Future`。在异步任务完成之前，读取资源会返回 `None`；任务完成后会通知其订阅者，返回 `Some(value)`。
 
-You can also `.await` a resource. This might seem pointless—Why would you create a wrapper around a `Future`, only to then `.await` it? We’ll see why in the next chapter.
+你还可以对资源使用 `.await`。这看起来似乎没什么意义——为什么要创建一个 `Future` 的封装，然后再对它 `.await`？在接下来的章节中我们会看到原因。
 
-## Resources
+## 资源（Resources）
 
-If you’re using SSR, you should be using `Resource` instead of `LocalResource` in most cases.
+如果你使用 SSR，大多数情况下应使用 `Resource` 而非 `LocalResource`。
 
-This API is slightly different. `Resource::new()` takes two functions as its arguments:
+此 API 略有不同。`Resource::new()` 接受两个函数作为参数：
 
-1. a source function, which contains the “input.” This input is memoized, and whenever its value changes, the fetcher will be called.
-2. a fetcher function, which takes the data from the source function and returns a `Future`
+1. **源函数**：包含输入内容。该输入会被 memoized（记忆化），每当其值变化时，会调用 fetcher。
+2. **fetcher 函数**：从源函数中获取数据并返回一个 `Future`。
 
-Unlike a `LocalResource`, a `Resource` serializes its value from the server to the client. Then, on the client, when first loading the page, the initial value will be deserialized rather than the async task running again. This is extremely important and very useful: It means that rather than waiting for the client WASM bundle to load and begin running the application, data loading begins on the server. (There will be more to say about this in later chapters.)
+与 `LocalResource` 不同，`Resource` 会将其值从服务器序列化到客户端。随后，在客户端首次加载页面时，初始值会被反序列化，而不是重新运行异步任务。这非常重要且有用：这意味着在客户端 WASM 包加载并开始运行应用程序之前，数据加载已经在服务器上开始。（稍后章节会对此进行更多讨论。）
 
-This is also why the API is split into two parts: signals in the *source* function are tracked, but signals in the *fetcher* are untracked, because this allows the resource to maintain reactivity without needing to run the fetcher again during initial hydration on the client.
+这也是 API 分为两部分的原因：*源函数*中的信号会被追踪，而 *fetcher* 中的信号不会被追踪，因为这允许资源在保持反应性的同时，在客户端首次加载时不需要重新运行 fetcher。
 
-Here’s the same example, using `Resource` instead of `LocalResource`
+以下是使用 `Resource` 替代 `LocalResource` 的相同示例：
 
 ```rust
-// this count is our synchronous, local state
+// `count` 是我们的同步本地状态
 let (count, set_count) = signal(0);
 
-// our resource
+// 我们的资源
 let async_data = Resource::new(
     move || count.get(),
-    // every time `count` changes, this will run
+    // 每次 `count` 变化时运行此函数
     |count| load_data(count) 
 );
 ```
 
-Resources also provide a `refetch()` method that allows you to manually reload the data (for example, in response to a button click). 
+Resources 还提供了一个 `refetch()` 方法，允许你手动重新加载数据（例如响应按钮点击）。
 
-To create a resource that simply runs once, you can use `OnceResource`, which simply takes a `Future`, and adds some optimizations that come from knowing it will only load once.
+如果只需要运行一次的资源，可以使用 `OnceResource`，它接受一个 `Future` 并对只加载一次的情况进行了优化。
 
 ```rust
 let once = OnceResource::new(load_data(42));
 ```
 
-## Accessing Resources
+## 访问 Resources
 
-Both `LocalResource` and `Resource` implement the various signal access methods (`.read()`, `.with()`, `.get()`), but return `Option<T>` instead of `T`; they will be `None` until the async data has loaded.
+`LocalResource` 和 `Resource` 都实现了多种信号访问方法（`.read()`、`.with()`、`.get()`），但返回的是 `Option<T>` 而不是 `T`；在异步数据加载完成之前，它们会返回 `None`。
 
-`LocalResource` will actually return an `Option<SendWrapper<T>>`, which has to do with thread-safety requirements; you can use `.as_deref()` to get access to the inner type (see the example below).
+`LocalResource` 实际上会返回一个 `Option<SendWrapper<T>>`，这是出于线程安全的要求；可以使用 `.as_deref()` 来访问内部类型（见下例）。
 
 ```admonish sandbox title="Live example" collapsible=true
 

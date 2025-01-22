@@ -1,93 +1,95 @@
-# Global State Management
+# 全局状态管理
 
-So far, we've only been working with local state in components, and we’ve seen how to coordinate state between parent and child components. On occasion, there are times where people look for a more general solution for global state management that can work throughout an application.
+到目前为止，我们只处理了组件中的局部状态，并学习了如何在父组件和子组件之间协调状态。在某些情况下，人们会寻找一种更通用的全局状态管理解决方案，可以在整个应用程序中使用。
 
-In general, **you do not need this chapter.** The typical pattern is to compose your application out of components, each of which manages its own local state, not to store all state in a global structure. However, there are some cases (like theming, saving user settings, or sharing data between components in different parts of your UI) in which you may want to use some kind of global state management.
+一般来说，**你并不需要本章内容**。典型的模式是将应用程序分解为组件，每个组件管理自己的局部状态，而不是将所有状态存储在全局结构中。然而，在某些场景下（比如主题管理、保存用户设置或在 UI 的不同部分之间共享数据），你可能需要某种全局状态管理方法。
 
-The three best approaches to global state are
+管理全局状态的三种最佳方法是：
 
-1. Using the router to drive global state via the URL
-2. Passing signals through context
-3. Creating a global state struct using stores
+1. 使用路由器通过 URL 驱动全局状态  
+2. 通过上下文传递信号  
+3. 使用存储（stores）创建全局状态结构  
 
-## Option #1: URL as Global State
+---
 
-In many ways, the URL is actually the best way to store global state. It can be accessed from any component, anywhere in your tree. There are native HTML elements like `<form>` and `<a>` that exist solely to update the URL. And it persists across page reloads and between devices; you can share a URL with a friend or send it from your phone to your laptop and any state stored in it will be replicated.
+## 选项 1：将 URL 作为全局状态
 
-The next few sections of the tutorial will be about the router, and we’ll get much more into these topics.
+从某种意义上说，URL 实际上是存储全局状态的最佳方式之一。它可以从树中的任何组件访问。还有原生的 HTML 元素（例如 `<form>` 和 `<a>`）专门用于更新 URL。此外，URL 状态可以跨页面刷新和设备之间保持一致。你可以将 URL 分享给朋友，或从手机发送到笔记本电脑，URL 中存储的任何状态都将被复制。
 
-But for now, we'll just look at options #2 and #3.
+本教程的接下来的部分会详细介绍路由器相关的主题，因此我们会深入讨论这些内容。
 
-## Option #2: Passing Signals through Context
+现在，我们只讨论选项 2 和选项 3。
 
-In the section on [parent-child communication](view/08_parent_child.md), we saw that you can use `provide_context` to pass signal from a parent component to a child, and `use_context` to read it in the child. But `provide_context` works across any distance. If you want to create a global signal that holds some piece of state, you can provide it and access it via context anywhere in the descendants of the component where you provide it.
+---
 
-A signal provided via context only causes reactive updates where it is read, not in any of the components in between, so it maintains the power of fine-grained reactive updates, even at a distance.
+## 选项 2：通过上下文传递信号
 
-We start by creating a signal in the root of the app and providing it to
-all its children and descendants using `provide_context`.
+在 [父子通信](view/08_parent_child.md) 部分中，我们看到可以使用 `provide_context` 将信号从父组件传递到子组件，并使用 `use_context` 在子组件中读取该信号。而 `provide_context` 的作用范围不受距离限制。如果你想创建一个可以在应用程序任意位置访问的全局信号，可以使用上下文提供它并通过上下文读取。
+
+通过上下文提供的信号只会在读取的地方引发响应式更新，而不会影响中间的任何组件，因此即使跨组件传递信号，也能保持精细粒度的响应式更新能力。
+
+我们从在应用程序根组件中创建信号开始，然后通过 `provide_context` 提供该信号，让其可被所有子组件和后代组件访问。
 
 ```rust
 #[component]
 fn App() -> impl IntoView {
-    // here we create a signal in the root that can be consumed
-    // anywhere in the app.
+    // 在根组件中创建信号，可在应用的任何地方使用
     let (count, set_count) = signal(0);
-    // we'll pass the setter to specific components,
-    // but provide the count itself to the whole app via context
+    // 我们会将 setter 传递给特定的组件，
+    // 但通过上下文将 count 提供给整个应用
     provide_context(count);
 
     view! {
-        // SetterButton is allowed to modify the count
+        // SetterButton 组件可以修改 count
         <SetterButton set_count/>
-        // These consumers can only read from it
-        // But we could give them write access by passing `set_count` if we wanted
+        // 以下组件只读该信号
+        // 如果需要，也可以通过传递 `set_count` 给予写入权限
         <FancyMath/>
         <ListItems/>
     }
 }
 ```
 
-`<SetterButton/>` is the kind of counter we’ve written several times now.
-(See the sandbox below if you don’t understand what I mean.)
+`<SetterButton/>` 是我们之前多次编写的计数器组件类型（请参阅下面的沙箱示例以了解更多）。
 
-`<FancyMath/>` and `<ListItems/>` both consume the signal we’re providing via
-`use_context` and do something with it.
+`<FancyMath/>` 和 `<ListItems/>` 都会通过 `use_context` 消费我们通过上下文提供的信号，并对其执行某些操作。
 
 ```rust
-/// A component that does some "fancy" math with the global count
+/// 一个使用全局计数进行“复杂”数学运算的组件
 #[component]
 fn FancyMath() -> impl IntoView {
-    // here we consume the global count signal with `use_context`
+    // 通过 `use_context` 消费全局信号
     let count = use_context::<ReadSignal<u32>>()
-        // we know we just provided this in the parent component
-        .expect("there to be a `count` signal provided");
+        // 我们知道刚刚在父组件中提供了这个信号
+        .expect("需要有一个 `count` 信号被提供");
     let is_even = move || count.get() & 1 == 0;
 
     view! {
         <div class="consumer blue">
-            "The number "
+            "数字 "
             <strong>{count}</strong>
             {move || if is_even() {
-                " is"
+                " 是"
             } else {
-                " is not"
+                " 不是"
             }}
-            " even."
+            " 偶数。"
         </div>
     }
 }
 ```
 
-## Option #3: Create a Global State Store
+---
 
-> Some of this content is duplicated from the section on complex iteration with stores [here](../view/04b_iteration.md#option-4-stores). Both sections are intermediate/optional content, so I thought some duplication couldn’t hurt.
+## 选项 3：创建全局状态存储（Store）
 
-Stores are a new reactive primitive, available in Leptos 0.7 through the accompanying `reactive_stores` crate. (This crate is shipped separately for now so we can continue to develop it without requiring a version change to the whole framework.)
+> 部分内容与关于复杂迭代中存储的章节 [此处](../view/04b_iteration.md#option-4-stores) 重叠。由于这两部分都是中级/可选内容，因此一些重复不会有太大影响。
 
-Stores allow you to wrap an entire struct, and reactively read from and update individual fields without tracking changes to other fields.
+存储是 Leptos 0.7 中提供的新型响应式原语，通过伴随的 `reactive_stores` crate 提供。（目前该 crate 独立发布，以便可以在不影响整个框架版本的情况下继续开发。）
 
-They are used by adding `#[derive(Store)]` onto a struct. (You can `use reactive_stores::Store;` to import the macro.) This creates an extension trait with a getter for each field of the struct, when the struct is wrapped in a `Store<_>`.
+存储允许你包装整个结构体，并对个别字段进行响应式读取和更新，而不会跟踪其他字段的更改。
+
+你可以通过在结构体上添加 `#[derive(Store)]` 来使用存储。（导入宏时需要使用 `use reactive_stores::Store;`。）这会为结构体创建一个扩展 trait，当结构体被包裹在 `Store<_>` 中时，该 trait 提供每个字段的 getter 方法。
 
 ```rust
 #[derive(Clone, Debug, Default, Store)]
@@ -97,22 +99,22 @@ struct GlobalState {
 }
 ```
 
-This creates a trait named `GlobalStateStoreFields` which adds with methods `count` and `name` to a `Store<GlobalState>`. Each method returns a reactive store *field*.
+这会创建一个名为 `GlobalStateStoreFields` 的 trait，为 `Store<GlobalState>` 添加 `count` 和 `name` 方法。每个方法返回一个响应式存储字段。
 
 ```rust
 #[component]
 fn App() -> impl IntoView {
     provide_context(Store::new(GlobalState::default()));
 
-    // etc.
+    // 等等
 }
 
-/// A component that updates the count in the global state.
+/// 一个更新全局状态中计数的组件
 #[component]
 fn GlobalStateCounter() -> impl IntoView {
     let state = expect_context::<Store<GlobalState>>();
 
-    // this gives us reactive access to the `count` field only
+    // 这让我们能响应式访问 `count` 字段
     let count = state.count();
 
     view! {
@@ -122,17 +124,15 @@ fn GlobalStateCounter() -> impl IntoView {
                     *count.write() += 1;
                 }
             >
-                "Increment Global Count"
+                "增加全局计数"
             </button>
             <br/>
-            <span>"Count is: " {move || count.get()}</span>
+            <span>"计数为: " {move || count.get()}</span>
         </div>
     }
 }
 ```
 
-Clicking this button only updates `state.count`. If we read from `state.name` somewhere else, 
-click the button won’t notify it. This allows you to combine the benefits of a top-down
-data flow and of fine-grained reactive updates.
+点击按钮时只会更新 `state.count`。如果我们在其他地方读取了 `state.name`，点击按钮不会通知它。这让你能够结合自上而下的数据流和精细粒度的响应式更新的优势。
 
-Check out the [`stores` example](https://github.com/leptos-rs/leptos/blob/main/examples/stores/src/lib.rs) in the repo for a more extensive example.
+查看代码库中的 [`stores` 示例](https://github.com/leptos-rs/leptos/blob/main/examples/stores/src/lib.rs)，了解更详细的示例内容。
