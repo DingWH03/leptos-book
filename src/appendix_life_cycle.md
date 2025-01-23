@@ -1,15 +1,16 @@
-# Appendix: The Life Cycle of a Signal
+# 附录：信号的生命周期
 
-Three questions commonly arise at the intermediate level when using Leptos:
-1. How can I connect to the component lifecycle, running some code when a component mounts or unmounts?
-2. How do I know when signals are disposed, and why do I get an occasional panic when trying to access a disposed signal?
-3. How is it possible that signals are `Copy` and can be moved into closures and other structures without being explicitly cloned?
+在使用 Leptos 时，中级开发者经常会遇到以下三个问题：
 
-The answers to these three questions are closely inter-related, and are each somewhat complicated. This appendix will try to give you the context for understanding the answers, so that you can reason correctly about your application's code and how it runs.
+1. 如何连接到组件的生命周期，在组件挂载（mount）或卸载（unmount）时运行某些代码？
+2. 我如何知道信号（signal）何时被销毁？为什么有时在尝试访问被销毁的信号时会出现 panic？
+3. 信号是如何实现 `Copy` 的，并且可以在闭包和其他结构中移动而无需显式克隆？
 
-## The Component Tree vs. The Decision Tree
+这三个问题的答案密切相关，而且每个问题的答案都比较复杂。本附录将为你提供理解这些答案的上下文，帮助你正确地推理应用的代码及其运行方式。
 
-Consider the following simple Leptos app:
+## 组件树 vs 决策树
+
+考虑以下简单的 Leptos 应用：
 
 ```rust
 use leptos::logging::log;
@@ -49,16 +50,16 @@ pub fn OddDuck() -> impl IntoView {
 }
 ```
 
-All it does is show a counter button, and then one message if it's even, and a different message if it's odd. If it's odd, it also logs the values in the console.
+这个应用只显示一个计数按钮，然后根据计数是否为偶数显示不同的消息。如果是奇数，还会在控制台中记录值。
 
-One way to map out this simple application would be to draw a tree of nested components:
+一种映射这个简单应用的方法是绘制嵌套组件的树：
 ```
 App 
 |_ InnerComponent
    |_ OddDuck
 ```
 
-Another way would be to draw the tree of decision points:
+另一种方法是绘制决策点的树：
 ```
 root
 |_ is count even?
@@ -66,7 +67,7 @@ root
    |_ no
 ```
 
-If you combine the two together, you'll notice that they don't map onto one another perfectly. The decision tree slices the view we created in `InnerComponent` into three pieces, and combines part of `InnerComponent` with the `OddDuck` component:
+如果将两者结合起来，会发现它们并不完全对应。决策树将我们在 `InnerComponent` 中创建的视图分为三个部分，并将 `InnerComponent` 的一部分与 `OddDuck` 组件合并：
 ```
 DECISION            COMPONENT           DATA    SIDE EFFECTS
 root                <App/>              (count) render <button>
@@ -77,111 +78,114 @@ root                <App/>              (count) render <button>
                                                 render odd <p> (in <InnerComponent/>!)
 ```
 
-Looking at this table, I notice the following things:
-1. The component tree and the decision tree don't match one another: the "is count even?" decision splits `<InnerComponent/>` into three parts (one that never changes, one if even, one if odd), and merges one of these with the `<OddDuck/>` component. 
-2. The decision tree and the list of side effects correspond perfectly: each side effect is created at a specific decision point.
-3. The decision tree and the tree of data also line up. It's hard to see with only one signal in the table, but unlike a component, which is a function that can include multiple decisions or none, a signal is always created at a specific line in the tree of decisions.
+通过观察这张表，我注意到以下几点：
 
-Here's the thing: The structure of your data and the structure of side effects affect the actual functionality of your application. The structure of your components is just a convenience of authoring. You don't care, and you shouldn't care, which component rendered which `<p>` tag, or which component created the effect to log the values. All that matters is that they happen at the right times.
+1. 组件树和决策树并不匹配：“计数是否为偶数？”的决策将 `<InnerComponent/>` 分为三个部分（一个永远不变，一个在计数为偶时渲染，一个在计数为奇时渲染），并将其中一个部分与 `<OddDuck/>` 组件合并。
+2. 决策树和副作用列表完全对应：每个副作用都在特定的决策点创建。
+3. 决策树和数据树也一致。虽然表中只有一个信号，但可以看出，与组件可以包含多个决策或不包含决策不同，信号始终在决策树中的特定位置创建。
 
-In Leptos, *components do not exist.* That is to say: You can write your application as a tree of components, because that's convenient, and we provide some debugging tools and logging built around components, because that's convenient too. But your components do not exist at runtime: Components are not a unit of change detection or of rendering. They are simply function calls. You can write your whole application in one big component, or split it into a hundred components, and it does not affect the runtime behavior, because components don't really exist.
+关键是：**数据的结构和副作用的结构决定了应用程序的实际功能**。组件的结构只是为了方便书写。你不需要，也不应该关心哪个组件渲染了哪个 `<p>` 标签，或哪个组件创建了记录值的副作用。重要的是，这些操作发生在正确的时间点。
 
-The decision tree, on the other hand, *does exist*. And it's really important!
+在 Leptos 中，**组件是不存在的**。也就是说：你可以将应用程序写成一个组件树，因为这很方便；我们也提供了一些围绕组件的调试工具和日志记录，因为这也很方便。但你的组件在运行时并不存在：组件不是变更检测或渲染的单位。它们只是函数调用。你可以将整个应用写在一个大组件里，也可以拆分成一百个组件，这不会影响运行时的行为，因为组件本质上并不存在。
 
-## The Decision Tree, Rendering, and Ownership
+另一方面，**决策树确实存在**，而且非常重要！
 
-Every decision point is some kind of reactive statement: a signal or a function that can change over time. When you pass a signal or a function into the renderer, it automatically wraps it in an effect that subscribes to any signals it contains, and updates the view accordingly over time.
+## 决策树、渲染与所有权
 
-This means that when your application is rendered, it creates a tree of nested effects that perfectly mirrors the decision tree. In pseudo-code:
+每个决策点都是某种类型的反应式语句：一个信号或一个随时间变化的函数。当你将一个信号或函数传递给渲染器时，渲染器会自动将它包裹在一个订阅信号的 effect 中，并随时间更新视图。
+
+这意味着当你的应用被渲染时，它会创建一个嵌套 effect 的树，与决策树完美对应。伪代码如下：
+
 ```rust
 // root
-let button = /* render the <button> once */;
+let button = /* 渲染一次 <button> */;
 
-// the renderer wraps an effect around the `move || if count() ...`
+// 渲染器为 `move || if count() ...` 包裹了一个 effect
 Effect::new(|_| {
     if count.get() % 2 == 0 {
-        let p = /* render the even <p> */;
+        let p = /* 渲染偶数的 <p> */;
     } else {
-        // the user created an effect to log the count
+        // 用户创建了一个记录计数的 effect
         Effect::new(|_| {
             log!("count is odd and is {}", count.get());
         });
 
-        let p1 = /* render the <p> from OddDuck */;
-        let p2 = /* render the second <p> */ 
+        let p1 = /* 渲染 OddDuck 的 <p> */;
+        let p2 = /* 渲染第二个 <p> */;
 
-        // the renderer creates an effect to update the second <p>
+        // 渲染器创建了一个更新第二个 <p> 的 effect
         Effect::new(|_| {
-            // update the content of the <p> with the signal
+            // 使用信号更新 <p> 的内容
             p2.set_text_content(count.get());
         });
     }
 })
 ```
 
-Each reactive value is wrapped in its own effect to update the DOM, or run any other side effects of changes to signals. But you don't need these effects to keep running forever. For example, when `count` switches from an odd number back to an even number, the second `<p>` no longer exists, so the effect to keep updating it is no longer useful. Instead of running forever, effects are canceled when the decision that created them changes. In other words, and more precisely: effects are canceled whenever the effect that was running when they were created re-runs. If they were created in a conditional branch, and re-running the effect goes through the same branch, the effect will be created again: if not, it will not.
+每个反应式值都包裹在自己的 effect 中，用于更新 DOM 或处理信号变化的其他副作用。但这些 effects 不需要永远运行。例如，当 `count` 从奇数切换回偶数时，第二个 `<p>` 不再存在，因此用于更新它的 effect 不再有用。与其让这些 effects 永远运行，不如在创建它们的决策发生变化时取消它们。更具体地说：effects 在创建它们的 effect 重新运行时会被取消。如果它们是在一个条件分支中创建的，而重新运行时经过了相同的分支，则会重新创建 effect；否则不会。
 
-From the perspective of the reactive system itself, your application's "decision tree" is really a reactive "ownership tree." Simply put, a reactive "owner" is the effect or memo that is currently running. It owns effects created within it, they own their own children, and so on. When an effect is going to re-run, it first "cleans up" its children, then runs again.
+从反应式系统的角度来看，你的应用的“决策树”实际上是一个反应式的“所有权树”。简单来说，一个反应式“所有者”是当前正在运行的 effect 或 memo。它拥有在其中创建的 effects，这些 effects 拥有它们自己的子级，依此类推。当一个 effect 即将重新运行时，它会首先“清理”它的子级，然后再运行。
 
-So far, this model is shared with the reactive system as it exists in JavaScript frameworks like S.js or Solid, in which the concept of ownership exists to automatically cancel effects.
+到目前为止，这种模型与 JavaScript 框架（如 S.js 或 Solid）中的反应式系统共享，它们中的所有权概念用于自动取消 effects。
 
-What Leptos adds is that we add a second, similar meaning to ownership: a reactive owner not only owns its child effects, so that it can cancel them; it also owns its signals (memos, etc.) so that it can dispose of them.
+Leptos 的独特之处在于，所有权在这里具有双重含义：反应式所有者不仅拥有其子级 effects，以便能够取消它们；它还拥有其信号（memos 等），以便能够销毁它们。
 
-## Ownership and the `Copy` Arena
+## 所有权与 `Copy` Arena
 
-This is the innovation that allows Leptos to be usable as a Rust UI framework. Traditionally, managing UI state in Rust has been hard, because UI is all about shared mutability. (A simple counter button is enough to see the problem: You need both immutable access to set the text node showing the counter's value, and mutable access in the click handler, and every Rust UI framework is designed around the fact that Rust is designed to prevent exactly that!) Using something like an event handler in Rust traditionally relies on primitives for communicating via shared memory with interior mutability (`Rc<RefCell<_>>`, `Arc<Mutex<_>>`) or for shared memory by communicating via channels, either of which often requires explicit `.clone()`ing to be moved into an event listener. This is kind of fine, but also an enormous inconvenience.
+这是使 Leptos 能够作为 Rust UI 框架使用的创新点。传统上，在 Rust 中管理 UI 状态是困难的，因为 UI 本质上涉及共享的可变性。（即使是一个简单的计数按钮也足以暴露问题：你需要不可变的访问来设置显示计数值的文本节点，同时在点击事件处理程序中需要可变的访问。而 Rust 恰恰是为了防止这种情况而设计的！）传统上，在 Rust 中使用事件处理程序依赖于以下两种方式之一：通过共享内存和内部可变性（如 `Rc<RefCell<_>>`，`Arc<Mutex<_>>`）进行通信，或通过通道共享内存进行通信。这两种方式通常都需要显式 `.clone()` 才能将状态移动到事件监听器中。这种方法虽然可行，但非常不便。
 
-Leptos has always used a form of arena allocation for signals instead. A signal itself is essentially an index into a data structure that's held elsewhere. It's a cheap-to-copy integer type that does not do reference counting on its own, so it can be copied around, moved into event listeners, etc. without explicit cloning.
+Leptos 始终使用一种基于 arena 分配的信号机制。信号本质上是一个指向数据结构的索引，而该数据结构存储在其他地方。信号是一种轻量级的整数类型，本身不会进行引用计数，因此可以自由地被复制、移动到事件监听器中等，而无需显式克隆。
 
-Instead of Rust lifetimes or reference counting, the life cycles of these signals are determined by the ownership tree.
+这些信号的生命周期不是由 Rust 的生命周期或引用计数决定的，而是由所有权树决定的。
 
-Just as all effects belong to an owning parent effect, and the children are canceled when the owner reruns, so too all signals belong to an owner, and are disposed of when the parent reruns. 
+就像所有的 effect 都属于一个拥有的父级 effect，并且当父级重新运行时会取消子级一样，所有的信号也属于一个所有者，并且当所有者重新运行时会被销毁。
 
-In most cases, this is completely fine. Imagine that in our example above, `<OddDuck/>` created some other signal that it used to update part of its UI. In most cases, that signal will be used for local state in that component, or maybe passed down as a prop to another component. It's unusual for it to be hoisted up out of the decision tree and used somewhere else in the application. When the `count` switches back to an even number, it is no longer needed and can be disposed.
+在大多数情况下，这完全没问题。比如在上面的例子中，`<OddDuck/>` 可能创建了其他信号，用于更新其 UI 的一部分。在大多数情况下，该信号只会用于组件的本地状态，或者作为 prop 传递给另一个组件。通常，它不会被提升到决策树之外的地方并用于应用的其他部分。当 `count` 切换回偶数时，该信号不再需要，可以被销毁。
 
-However, this means there are two possible issues that can arise.
+然而，这种机制可能会导致两个潜在问题。
 
-### Signals can be used after they are disposed 
+### 信号在被销毁后仍然可以被使用
 
-The `ReadSignal` or `WriteSignal` that you hold is just an integer: say, 3 if it's the 3rd signal in the application. (As always, the reality is a bit more complicated, but not much.) You can copy that number all over the place and use it to say, "Hey, get me signal 3." When the owner cleans up, the *value* of signal 3 will be invalidated; but the number 3 that you've copied all over the place can't be invalidated. (Not without a whole garbage collector!) That means that if you push signals back "up" the decision tree, and store them somewhere conceptually "higher" in your application than they were created, they can be accessed after being disposed.
+你持有的 `ReadSignal` 或 `WriteSignal` 仅仅是一个整数：例如，如果它是应用中的第 3 个信号，值就是 3。（当然实际情况稍微复杂一些，但差别不大。）你可以随意复制这个数字并使用它，比如说“嘿，给我第 3 个信号。”当其所有者进行清理时，信号 3 的**值**会被失效；但你到处复制的数字 3 是无法被失效的。（除非用垃圾回收机制！）这意味着，如果你将信号“推”回到决策树的更高层，并将其存储在比创建它时更“高”的位置，信号可能在被销毁后仍然可以被访问。
 
-If you try to *update* a signal after it was disposed, nothing bad really happens. The framework will just warn you that you tried to update a signal that no longer exists. But if you try to *access* one, there's no coherent answer other than panicking: there is no value that could be returned. (There are `try_` equivalents to the `.get()` and `.with()` methods that will simply return `None` if a signal has been disposed).
+如果你试图在信号被销毁后**更新**它，实际上并不会发生什么坏事。框架只会警告你试图更新一个已经不存在的信号。但如果你试图**访问**它，就只能导致 panic：因为无法返回一个合理的值。（框架提供了 `try_` 版本的 `.get()` 和 `.with()` 方法，如果信号被销毁，它们会返回 `None`。）
 
-### Signals can be leaked if you create them in a higher scope and never dispose of them
+### 如果在较高作用域创建信号且从未销毁，信号可能会泄漏
 
-The opposite is also true, and comes up particularly when working with collections of signals, like an `RwSignal<Vec<RwSignal<_>>>`. If you create a signal at a higher level, and pass it down to a component at a lower level, it is not disposed until the higher-up owner is cleaned up. 
+反过来也会发生问题，尤其是在处理信号集合时，比如 `RwSignal<Vec<RwSignal<_>>>`。如果你在更高层级创建一个信号，并将其传递到较低层级的组件中，它不会在上层所有者被清理之前自动销毁。
 
-For example, if you have a todo app that creates a new `RwSignal<Todo>` for each todo, stores it in an `RwSignal<Vec<RwSignal<Todo>>>`, and then passes it down to a `<Todo/>`, that signal is not automatically disposed when you remove the todo from the list, but must be manually disposed, or it will "leak" for as long as its owner is still alive. (See the [TodoMVC example](https://github.com/leptos-rs/leptos/blob/main/examples/todomvc/src/lib.rs#L77-L85) for more discussion.) 
+例如，如果你有一个待办事项应用，每个待办事项创建一个新的 `RwSignal<Todo>`，将其存储在 `RwSignal<Vec<RwSignal<Todo>>>` 中，然后将其传递到 `<Todo/>` 组件中。当你从列表中移除一个待办事项时，该信号不会自动销毁，必须手动销毁，否则会“泄漏”，直到上层的所有者仍然存活为止。（参见 [TodoMVC 示例](https://github.com/leptos-rs/leptos/blob/main/examples/todomvc/src/lib.rs#L77-L85) 的讨论。）
 
-This is only an issue when you create signals, store them in a collection, and remove them from the collection without manually disposing of them as well.
+这种问题只会在以下情况下发生：你创建信号，将其存储在集合中，并从集合中移除它时没有手动销毁它。
 
-### Solving these Problems with Reference-Counted Signals
+### 使用引用计数信号解决这些问题
 
-0.7 introduces a reference-counted equivalent for each of our arena-allocated primitive: for every `RwSignal` there is an `ArcRwSignal` (`ArcReadSignal`, `ArcWriteSignal`, `ArcMemo`, and so on).
+在 0.7 版本中，为每个基于 arena 分配的原语引入了一个引用计数的等价物：每个 `RwSignal` 都有一个 `ArcRwSignal`（包括 `ArcReadSignal`、`ArcWriteSignal`、`ArcMemo` 等）。
 
-These have their memory and disposal managed by reference counting, rather than the ownership tree.
+这些信号的内存和销毁由引用计数而不是所有权树管理。
 
-This means that they can safely be used in situations in which the arena-allocated equivalents would either be leaked or used after being disposed.
+这意味着它们可以安全地用于 arena 分配的信号可能会泄漏或被销毁后使用的情况。
 
-This is especially useful when creating collections of signals: you might create `ArcRwSignal<_>` instead of `RwSignal<_>`, and then convert it into an `RwSignal<_>` in each row of a table, for example.
+这在创建信号集合时尤其有用：例如，你可以创建一个 `ArcRwSignal<_>`，然后在表格的每一行中将其转换为 `RwSignal<_>`。
 
-See the use of `ArcRwSignal<i32>` in the [`counters` example](https://github.com/leptos-rs/leptos/blob/main/examples/counters/src/lib.rs) for a more concrete example.
+具体示例请参见 [`counters` 示例](https://github.com/leptos-rs/leptos/blob/main/examples/counters/src/lib.rs) 中对 `ArcRwSignal<i32>` 的使用。
 
-## Connecting the Dots
+## 总结
 
-The answers to the questions we started with should probably make some sense now.
+现在我们可以回到最初的问题，相信它们的答案应该变得更加清晰了。
 
-### Component Life-Cycle
+### 组件生命周期
 
-There is no component life-cycle, because components don't really exist. But there is an ownership lifecycle, and you can use it to accomplish the same things:
-- *before mount*: simply running code in the body of a component will run it "before the component mounts"
-- *on mount*: `create_effect` runs a tick after the rest of the component, so it can be useful for effects that need to wait for the view to be mounted to the DOM. 
-- *on unmount*: You can use `on_cleanup` to give the reactive system code that should run while the current owner is cleaning up, before running again. Because an owner is around a "decision," this means that `on_cleanup` will run when your component unmounts: if something can unmount, the renderer must have created an effect that's unmounting it!
+**组件没有生命周期**，因为组件实际上并不存在。但存在所有权的生命周期，你可以利用它实现相同的功能：
 
-### Issues with Disposed Signals
+- **挂载前（before mount）**：直接在组件主体中运行代码会在“组件挂载前”运行它。
+- **挂载时（on mount）**：`create_effect` 会在组件其余部分运行之后的一个 tick 执行，因此它适合那些需要等待视图挂载到 DOM 后再运行的 effect。
+- **卸载时（on unmount）**：你可以使用 `on_cleanup` 为反应式系统提供需要在当前所有者清理时运行的代码。这会在所有者重新运行之前执行。由于所有者是围绕某个“决策”存在的，这意味着 `on_cleanup` 会在组件卸载时运行：如果某个东西可以被卸载，那么渲染器一定创建了一个 effect 来处理它的卸载。
 
-Generally speaking, problems can only arise here if you are creating a signal lower down in the ownership tree and storing it somewhere higher up. If you run into issues here, you should instead "hoist" the signal creation up into the parent, and then pass the created signals down—making sure to dispose of them on removal, if needed!
+### 被销毁信号的问题
 
-### `Copy` signals
+通常来说，只有当你在所有权树较低的位置创建信号并将其存储在较高的位置时，才会出现问题。如果你遇到了这些问题，应该将信号的创建“提升”到父级，然后将创建的信号传递给子级——如果需要的话，确保在移除时销毁它们！
 
-The whole system of `Copy`able wrapper types (signals, `StoredValue`, and so on) uses the ownership tree as a close approximation of the life-cycle of different parts of your UI. In effect, it parallels the Rust language's system of lifetimes based on blocks of code with a system of lifetimes based on sections of UI. This can't always be perfectly checked at compile time, but overall we think it's a net positive.
+### `Copy` 信号
+
+整个 `Copy` 包装类型系统（包括信号、`StoredValue` 等）利用所有权树来近似表示 UI 不同部分的生命周期。实际上，它类似于 Rust 基于代码块的生命周期系统，但基于 UI 的不同部分。虽然这不能始终在编译时完美检查，但总体来看，这种设计是一个显著的优势。

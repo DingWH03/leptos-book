@@ -1,17 +1,17 @@
-# Server Functions
+# 服务器函数
 
-If you’re creating anything beyond a toy app, you’ll need to run code on the server all the time: reading from or writing to a database that only runs on the server, running expensive computations using libraries you don’t want to ship down to the client, accessing APIs that need to be called from the server rather than the client for CORS reasons or because you need a secret API key that’s stored on the server and definitely shouldn’t be shipped down to a user’s browser.
+如果你在创建任何超越简单应用的项目，那么你将需要始终在服务器上运行代码，比如：读取或写入只能在服务器上运行的数据库，使用你不想发送到客户端的库进行复杂计算，访问需要从服务器调用而非客户端调用的 API（例如为了避免 CORS 问题或保护存储在服务器上的秘密 API 密钥，这些密钥绝不能被传递到用户的浏览器中）。
 
-Traditionally, this is done by separating your server and client code, and by setting up something like a REST API or GraphQL API to allow your client to fetch and mutate data on the server. This is fine, but it requires you to write and maintain your code in multiple separate places (client-side code for fetching, server-side functions to run), as well as creating a third thing to manage, which is the API contract between the two.
+传统上，这是通过分离服务器和客户端代码来完成的，并通过设置类似 REST API 或 GraphQL API 的方式让客户端能够在服务器上获取和修改数据。这种方式是可以的，但它需要你在多个不同的地方编写和维护代码（客户端代码用于获取数据，服务器端代码用于处理请求），还需要管理一个额外的东西——客户端和服务器之间的 API 契约。
 
-Leptos is one of a number of modern frameworks that introduce the concept of **server functions**. Server functions have two key characteristics:
+Leptos 是一系列现代框架之一，它引入了**服务器函数（server functions）**的概念。服务器函数有两个关键特点：
 
-1. Server functions are **co-located** with your component code, so that you can organize your work by feature, not by technology. For example, you might have a “dark mode” feature that should persist a user’s dark/light mode preference across sessions, and be applied during server rendering so there’s no flicker. This requires a component that needs to be interactive on the client, and some work to be done on the server (setting a cookie, maybe even storing a user in a database.) Traditionally, this feature might end up being split between two different locations in your code, one in your “frontend” and one in your “backend.” With server functions, you’ll probably just write them both in one `dark_mode.rs` and forget about it.
-2. Server functions are **isomorphic**, i.e., they can be called either from the server or the browser. This is done by generating code differently for the two platforms. On the server, a server function simply runs. In the browser, the server function’s body is replaced with a stub that actually makes a fetch request to the server, serializing the arguments into the request and deserializing the return value from the response. But on either end, the function can simply be called: you can create an `add_todo` function that writes to your database, and simply call it from a click handler on a button in the browser!
+1. **服务器函数与组件代码共同定位**，这使得你可以按功能组织工作，而不是按技术划分。例如，你可能需要一个“暗模式”功能，应该在多个会话中保留用户的深色/浅色模式偏好，并在服务器端渲染期间应用，以避免闪烁。这需要一个在客户端交互的组件，同时在服务器上完成一些工作（设置 cookie，甚至将用户存储到数据库中）。传统上，这一功能可能会被分散在代码中的两个不同位置，一个在“前端”，一个在“后端”。而使用服务器函数，你可能只需将它们一起写入一个 `dark_mode.rs` 文件即可。
+2. **服务器函数是同构的（isomorphic）**，即它们可以从服务器或浏览器调用。这是通过为两个平台生成不同的代码实现的。在服务器上，服务器函数直接运行。而在浏览器中，服务器函数的主体会被替换为一个存根（stub），实际上是向服务器发起一个 fetch 请求，将参数序列化到请求中，并从响应中反序列化返回值。在这两端，你都可以简单地调用该函数：比如你可以创建一个 `add_todo` 函数，它将数据写入数据库，并直接从浏览器中某个按钮的点击处理程序调用它！
 
-## Using Server Functions
+## 使用服务器函数
 
-Actually, I kind of like that example. What would it look like? It’s pretty simple, actually.
+举个例子，代码会是什么样子？其实非常简单。
 
 ```rust
 // todo.rs
@@ -44,12 +44,12 @@ pub fn BusyButton() -> impl IntoView {
 }
 ```
 
-You’ll notice a couple things here right away:
+你会立即注意到以下几点：
 
-- Server functions can use server-only dependencies, like `sqlx`, and can access server-only resources, like our database.
-- Server functions are `async`. Even if they only did synchronous work on the server, the function signature would still need to be `async`, because calling them from the browser _must_ be asynchronous.
-- Server functions return `Result<T, ServerFnError>`. Again, even if they only do infallible work on the server, this is true, because `ServerFnError`’s variants include the various things that can be wrong during the process of making a network request.
-- Server functions can be called from the client. Take a look at our click handler. This is code that will _only ever_ run on the client. But it can call the function `add_todo` (using `spawn_local` to run the `Future`) as if it were an ordinary async function:
+- 服务器函数可以使用仅限服务器的依赖项，比如 `sqlx`，并访问仅限服务器的资源，比如数据库。
+- 服务器函数是 `async` 的。即使它们在服务器上只执行同步工作，函数签名仍然需要是 `async`，因为从浏览器调用它们**必须**是异步的。
+- 服务器函数返回 `Result<T, ServerFnError>`。同样，即使它们只在服务器上执行不可能失败的工作，这也是必要的，因为 `ServerFnError` 的变体包括可能在网络请求过程中出现的各种错误。
+- 服务器函数可以从客户端调用。看看点击处理程序中的代码。这是**仅在客户端运行的代码**。但它可以调用 `add_todo` 函数（使用 `spawn_local` 来运行 `Future`），就像它是一个普通的异步函数一样：
 
 ```rust
 move |_| {
@@ -59,39 +59,39 @@ move |_| {
 }
 ```
 
-- Server functions are top-level functions defined with `fn`. Unlike event listeners, derived signals, and most everything else in Leptos, they are not closures! As `fn` calls, they have no access to the reactive state of your app or anything else that is not passed in as an argument. And again, this makes perfect sense: When you make a request to the server, the server doesn’t have access to client state unless you send it explicitly. (Otherwise we’d have to serialize the whole reactive system and send it across the wire with every request. This would not be a great idea.)
-- Server function arguments and return values both need to be serializable. Again, hopefully this makes sense: while function arguments in general don’t need to be serialized, calling a server function from the browser means serializing the arguments and sending them over HTTP.
+- 服务器函数是顶级函数，用 `fn` 定义。与事件监听器、派生信号和 Leptos 中的其他大多数内容不同，它们不是闭包！作为 `fn` 调用，它们无法访问应用的反应式状态或未作为参数传入的其他内容。这很合理：当你向服务器发出请求时，服务器无法访问客户端状态，除非你明确地发送它。（否则我们将不得不序列化整个反应式系统，并在每次请求时将其发送到服务器。这并不是一个好主意。）
+- 服务器函数的参数和返回值都需要是可序列化的。同样，这应该很合理：虽然函数参数通常不需要序列化，但从浏览器调用服务器函数意味着需要将参数序列化并通过 HTTP 发送。
 
-There are a few things to note about the way you define a server function, too.
+关于定义服务器函数的方式，还有以下几点需要注意：
 
-- Server functions are created by using the [`#[server]` macro](https://docs.rs/leptos/latest/leptos/attr.server.html) to annotate a top-level function, which can be defined anywhere.
+- 服务器函数通过使用 [`#[server]`](https://docs.rs/leptos/latest/leptos/attr.server.html) 宏注解顶级函数来创建，可以定义在任何位置。
 
-Server functions work by using conditional compilation. On the server, the server function creates an HTTP endpoint that receives its arguments as an HTTP request, and returns its result as an HTTP response. For the client-side/browser build, the body of the server function is stubbed out with an HTTP request.
+服务器函数通过使用条件编译实现。在服务器上，服务器函数创建一个 HTTP 端点，该端点接收参数作为 HTTP 请求，并将结果返回为 HTTP 响应。而对于客户端/浏览器构建，服务器函数的主体将被替换为一个 HTTP 请求的存根。
 
 ```admonish warning
-### An Important Note about Security
+### 关于安全性的重要提示
 
-Server functions are a cool technology, but it’s very important to remember. **Server functions are not magic; they’re syntax sugar for defining a public API.** The _body_ of a server function is never made public; it’s just part of your server binary. But the server function is a publicly accessible API endpoint, and its return value is just a JSON or similar blob. Do not return information from a server function unless it is public, or you've implemented proper security procedures. These procedures might include authenticating incoming requests, ensuring proper encryption, rate limiting access, and more.
+服务器函数是一种很酷的技术，但请记住：**服务器函数并不是魔法，它们只是定义公共 API 的语法糖。**服务器函数的“主体”从未公开；它只是服务器二进制文件的一部分。但服务器函数是一个公开可访问的 API 端点，其返回值只是一个 JSON 或类似的 blob。不要返回任何信息，除非它是公开的，或者你已经实施了适当的安全措施。这些措施可能包括验证传入请求、确保加密、限制访问速率等。
 ```
 
-## Customizing Server Functions
+## 定制服务器函数
 
-By default, server functions encode their arguments as an HTTP POST request (using `serde_qs`) and their return values as JSON (using `serde_json`). This default is intended to promote compatibility with the `<form>` element, which has native support for making POST requests, even when WASM is disabled, unsupported, or has not yet loaded. They mount their endpoints at a hashed URL intended to prevent name collisions.
+默认情况下，服务器函数将其参数编码为 HTTP POST 请求（使用 `serde_qs`），并将其返回值编码为 JSON（使用 `serde_json`）。这一默认行为旨在促进对 `<form>` 元素的兼容性，因为 `<form>` 元素本身支持发出 POST 请求，即使在 WASM 被禁用、不受支持或尚未加载的情况下。这些端点会挂载到一个哈希化的 URL，以防止名称冲突。
 
-However, there are many ways to customize server functions, with a variety of supported input and output encodings, the ability to set specific endpoints, and so on.
+不过，服务器函数提供了许多自定义选项，包括支持的输入和输出编码、设置特定端点的能力等。
 
-Take a look at the docs for the [`#[server]` macro](https://docs.rs/leptos/latest/leptos/attr.server.html) and [`server_fn` crate](https://docs.rs/server_fn/latest/server_fn/), and the extensive [`server_fns_axum` example](https://github.com/leptos-rs/leptos/blob/main/examples/server_fns_axum/src/app.rs) in the repo for more information and examples.
+有关更多信息和示例，请查看 [`#[server]`](https://docs.rs/leptos/latest/leptos/attr.server.html) 宏、[`server_fn`](https://docs.rs/server_fn/latest/server_fn/) crate 的文档，以及 GitHub 中的 [`server_fns_axum`](https://github.com/leptos-rs/leptos/blob/main/examples/server_fns_axum/src/app.rs) 示例。
 
-## Integrating Server Functions with Leptos
+## 将服务器函数与 Leptos 集成
 
-So far, everything I’ve said is actually framework agnostic. (And in fact, the Leptos server function crate has been integrated into Dioxus as well!) Server functions are simply a way of defining a function-like RPC call that leans on Web standards like HTTP requests and URL encoding.
+到目前为止，我们讨论的内容实际上是框架无关的。（实际上，Leptos 的服务器函数 crate 已经集成到 Dioxus 中！）服务器函数本质上是一种定义类似 RPC 调用的方式，利用了 Web 标准，如 HTTP 请求和 URL 编码。
 
-But in a way, they also provide the last missing primitive in our story so far. Because a server function is just a plain Rust async function, it integrates perfectly with the async Leptos primitives we discussed [earlier](../async/index.html). So you can easily integrate your server functions with the rest of your applications:
+但从某种意义上说，它们也为我们的故事补充了最后一个缺失的原语。由于服务器函数只是一个普通的 Rust 异步函数，它可以完美地与我们之前讨论的异步 Leptos 原语集成。所以你可以轻松地将你的服务器函数与应用的其他部分集成：
 
-- Create **resources** that call the server function to load data from the server
-- Read these resources under `<Suspense/>` or `<Transition/>` to enable streaming SSR and fallback states while data loads.
-- Create **actions** that call the server function to mutate data on the server
+- 创建**资源**，调用服务器函数从服务器加载数据。
+- 在 `<Suspense/>` 或 `<Transition/>` 中读取这些资源，以在数据加载时启用流式 SSR 和回退状态。
+- 创建**操作**，调用服务器函数以在服务器上修改数据。
 
-The final section of this book will make this a little more concrete by introducing patterns that use progressively-enhanced HTML forms to run these server actions.
+本书的最后部分将通过引入使用渐进增强的 HTML 表单运行这些服务器操作的模式，使其更加具体。
 
-But in the next few chapters, we’ll actually take a look at some of the details of what you might want to do with your server functions, including the best ways to integrate with the powerful extractors provided by the Actix and Axum server frameworks.
+但在接下来的章节中，我们将实际看看如何处理服务器函数的细节，包括如何最好地与 Actix 和 Axum 服务器框架提供的强大提取器集成。

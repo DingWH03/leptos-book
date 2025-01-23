@@ -1,26 +1,26 @@
-# Deploying a Client-Side-Rendered App
+# 部署客户端渲染（CSR）应用
 
-If you’ve been building an app that only uses client-side rendering, working with Trunk as a dev server and build tool, the process is quite easy.
+如果你开发的应用只使用客户端渲染（CSR），并使用 Trunk 作为开发服务器和构建工具，部署过程非常简单。
 
 ```bash
 trunk build --release
 ```
 
-`trunk build` will create a number of build artifacts in a `dist/` directory. Publishing `dist` somewhere online should be all you need to deploy your app. This should work very similarly to deploying any JavaScript application.
+`trunk build` 将会在 `dist/` 目录中创建多个构建产物。只需将 `dist` 发布到某个在线服务器，即可完成应用的部署。这与部署任何 JavaScript 应用的过程非常相似。
 
-We've created several example repositories which show how to set up and deploy a Leptos CSR app to various hosting services.
+我们创建了多个示例仓库，展示了如何将 Leptos 客户端渲染应用部署到不同的托管服务上。
 
-_Note: Leptos does not endorse the use of any particular hosting service - feel free to use any service that supports static site deploys._
+_注意：Leptos 不推荐使用任何特定的托管服务，你可以自由选择任何支持静态站点部署的服务。_
 
-Examples:
+示例：
 
 - [Github Pages](#github-pages)
 - [Vercel](#vercel)
-- [Spin (serverless WebAssembly)](#spin---serverless-webassembly)
+- [Spin（无服务器 WebAssembly）](#spin---无服务器-webassembly)
 
 ## Github Pages
 
-Deploying a Leptos CSR app to Github pages is a simple affair. First, go to your Github repo's settings and click on "Pages" in the left side menu. In the "Build and deployment" section of the page, change the "source" to "Github Actions". Then copy the following into a file such as `.github/workflows/gh-pages-deploy.yml`
+将 Leptos 客户端渲染（CSR）应用部署到 Github Pages 非常简单。首先，进入你的 Github 仓库的设置页面，点击左侧菜单中的“Pages”。在页面的“Build and deployment”部分，将“Source”更改为“Github Actions”。然后，将以下内容复制到 `.github/workflows/gh-pages-deploy.yml` 文件中：
 
 ```admonish example collapsible=true
 
@@ -113,45 +113,45 @@ Deploying a Leptos CSR app to Github pages is a simple affair. First, go to your
 
 ```
 
-For more on deploying to Github Pages [see the example repo here](https://github.com/diversable/deploy_leptos_csr_to_gh_pages)
+更多关于部署到 Github Pages 的信息，请参考[此示例仓库](https://github.com/diversable/deploy_leptos_csr_to_gh_pages)。
 
 ## Vercel
 
-### Step 1: Set Up Vercel
+### 第 1 步：设置 Vercel
 
-In the Vercel Web UI...
+在 Vercel 的 Web 界面中：
 
-1. Create a new project
-2. Ensure
-   - The "Build Command" is left empty with Override on
-   - The "Output Directory" is changed to dist (which is the default output directory for Trunk builds) and the Override is on
+1. 创建一个新项目。
+2. 确保以下设置正确：
+   - 将“Build Command”留空并启用 Override。
+   - 将“Output Directory”更改为 `dist`（这是 Trunk 构建的默认输出目录）并启用 Override。
 
 <img src="./image.png" />
 
-### Step 2: Add Vercel Credentials for GitHub Actions
+### 第 2 步：为 GitHub Actions 添加 Vercel 凭据
 
-Note: Both the preview and deploy actions will need your Vercel credentials setup in GitHub secrets
+注意：预览和部署操作都需要在 GitHub secrets 中设置 Vercel 凭据。
 
-1. Retrieve your [Vercel Access Token](https://vercel.com/guides/how-do-i-use-a-vercel-api-access-token) by going to "Account Settings" > "Tokens" and creating a new token - save the token to use in sub-step 5, below.
+1. 获取你的 [Vercel Access Token](https://vercel.com/guides/how-do-i-use-a-vercel-api-access-token)，进入“Account Settings” > “Tokens”并创建一个新令牌——保存该令牌以便在后续步骤 5 中使用。
 
-2. Install the [Vercel CLI](https://vercel.com/cli) using the `npm i -g vercel` command, then run `vercel login` to login to your acccount.
+2. 使用命令 `npm i -g vercel` 安装 [Vercel CLI](https://vercel.com/cli)，然后运行 `vercel login` 登录到你的账户。
 
-3. Inside your folder, run `vercel link` to create a new Vercel project; in the CLI, you will be asked to 'Link to an existing project?' - answer yes, then enter the name you created in step 1. A new `.vercel` folder will be created for you.
+3. 在项目文件夹中运行 `vercel link` 创建一个新的 Vercel 项目；在 CLI 中，当被问到“Link to an existing project?”时，回答“是”，然后输入你在步骤 1 中创建的项目名称。此操作将为你生成一个 `.vercel` 文件夹。
 
-4. Inside the generated `.vercel` folder, open the the `project.json` file and save the "projectId" and "orgId" for the next step.
+4. 打开生成的 `.vercel` 文件夹中的 `project.json` 文件，保存其中的 `projectId` 和 `orgId`，以便在下一步使用。
 
-5. Inside GitHub, go the repo's "Settings" > "Secrets and Variables" > "Actions" and add the following as [Repository secrets](https://docs.github.com/en/actions/security-guides/encrypted-secrets):
-   - save your Vercel Access Token (from sub-step 1) as the `VERCEL_TOKEN` secret
-   - from the `.vercel/project.json` add "projectID" as `VERCEL_PROJECT_ID`
-   - from the `.vercel/project.json` add "orgId" as `VERCEL_ORG_ID`
+5. 在 GitHub 中，进入仓库的“Settings” > “Secrets and Variables” > “Actions”，将以下内容添加为[仓库密钥](https://docs.github.com/en/actions/security-guides/encrypted-secrets)：
+   - 将你的 Vercel Access Token（步骤 1 中创建的）保存为 `VERCEL_TOKEN`。
+   - 将 `.vercel/project.json` 中的 `projectId` 保存为 `VERCEL_PROJECT_ID`。
+   - 将 `.vercel/project.json` 中的 `orgId` 保存为 `VERCEL_ORG_ID`。
 
-<i>For full instructions see ["How can I use Github Actions with Vercel"](https://vercel.com/guides/how-can-i-use-github-actions-with-vercel)</i>
+<i>完整说明请参阅：[“如何将 Github Actions 与 Vercel 一起使用”](https://vercel.com/guides/how-can-i-use-github-actions-with-vercel)</i>
 
-### Step 3: Add Github Action Scripts
+### 第 3 步：添加 GitHub Action 脚本
 
-Finally, you're ready to simply copy and paste the two files - one for deployment, one for PR previews - from below or from [the example repo's `.github/workflows/` folder](https://github.com/diversable/vercel-leptos-CSR-deployment/tree/leptos_0.6/.github/workflows) into your own github workflows folder - then, on your next commit or PR deploys will occur automatically.
+最后，只需将以下两个文件——一个用于部署，另一个用于 PR 预览——复制粘贴到你的 `.github/workflows/` 文件夹中，或者从[示例仓库的 `.github/workflows/` 文件夹](https://github.com/diversable/vercel-leptos-CSR-deployment/tree/leptos_0.6/.github/workflows)中复制它们。完成后，你的下一次提交或 PR 将会自动触发部署。
 
-<i>Production deployment script: `vercel_deploy.yml`</i>
+<i>生产部署脚本：`vercel_deploy.yml`</i>
 
 ```admonish example collapsible=true
 
@@ -206,7 +206,7 @@ Finally, you're ready to simply copy and paste the two files - one for deploymen
 
 ```
 
-<i>Preview deployments script: `vercel_preview.yml`</i>
+<i>预览部署脚本：`vercel_preview.yml`</i>
 
 ```admonish example collapsible=true
 
@@ -308,27 +308,27 @@ Finally, you're ready to simply copy and paste the two files - one for deploymen
 
 ```
 
-See [the example repo here](https://github.com/diversable/vercel-leptos-CSR-deployment) for more.
+查看[示例仓库](https://github.com/diversable/vercel-leptos-CSR-deployment)了解更多信息。
 
-## Spin - Serverless WebAssembly
+## Spin - 无服务器 WebAssembly
 
-Another option is using a serverless platform such as Spin. Although [Spin](https://github.com/fermyon/spin) is open source and you can run it on your own infrastructure (eg. inside Kubernetes), the easiest way to get started with Spin in production is to use the Fermyon Cloud.
+另一种选择是使用无服务器平台，例如 Spin。尽管 [Spin](https://github.com/fermyon/spin) 是开源的，可以在你自己的基础设施上运行（例如 Kubernetes 中），但在生产环境中使用 Spin 最简单的方法是使用 Fermyon Cloud。
 
-Start by installing the [Spin CLI using the instructions, here](https://developer.fermyon.com/spin/v2/install), and creating a Github repo for your Leptos CSR project, if you haven't done so already.
+首先按照[此处的说明](https://developer.fermyon.com/spin/v2/install)安装 Spin CLI，并为你的 Leptos CSR 项目创建一个 Github 仓库（如果尚未创建）。
 
-1. Open "Fermyon Cloud" > "User Settings". If you’re not logged in, choose the Login With GitHub button.
+1. 打开“Fermyon Cloud” > “User Settings”。如果未登录，选择“Login With GitHub”按钮。
 
-2. In the “Personal Access Tokens”, choose “Add a Token”. Enter the name “gh_actions” and click “Create Token”.
+2. 在“Personal Access Tokens”部分，选择“Add a Token”。输入名称“gh_actions”，然后点击“Create Token”。
 
-3. Fermyon Cloud displays the token; click the copy button to copy it to your clipboard.
+3. Fermyon Cloud 会显示生成的令牌；点击复制按钮将其复制到剪贴板。
 
-4. Go into your Github repo and open "Settings" > "Secrets and Variables" > "Actions" and add the Fermyon cloud token to "Repository secrets" using the variable name "FERMYON_CLOUD_TOKEN"
+4. 打开你的 Github 仓库，进入“Settings” > “Secrets and Variables” > “Actions”，将 Fermyon Cloud 的令牌添加为“Repository secrets”，变量名为 `FERMYON_CLOUD_TOKEN`。
 
-5. Copy and paste the following Github Actions scripts (below) into your `.github/workflows/<SCRIPT_NAME>.yml` files
+5. 将以下 Github Actions 脚本复制粘贴到 `.github/workflows/<SCRIPT_NAME>.yml` 文件中。
 
-6. With the 'preview' and 'deploy' scripts active, Github Actions will now generate previews on pull requests & deploy automatically on updates to your 'main' branch.
+6. 启用“预览”和“部署”脚本后，Github Actions 将在每次拉取请求（PR）中生成预览，并在更新主分支时自动部署。
 
-<i>Production deployment script: `spin_deploy.yml`</i>
+<i>生产部署脚本：`spin_deploy.yml`</i>
 
 ```admonish example collapsible=true
 
@@ -425,7 +425,7 @@ Start by installing the [Spin CLI using the instructions, here](https://develope
 
 ```
 
-<i>Preview deployment script: `spin_preview.yml`</i>
+<i>预览部署脚本：`spin_preview.yml`</i>
 
 ```admonish example collapsible=true
 
@@ -526,4 +526,4 @@ Start by installing the [Spin CLI using the instructions, here](https://develope
 
 ```
 
-See [the example repo here](https://github.com/diversable/leptos-spin-CSR).
+查看[示例仓库](https://github.com/diversable/leptos-spin-CSR)了解更多信息。

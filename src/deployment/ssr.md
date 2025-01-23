@@ -1,19 +1,19 @@
-# Deploying a Full-Stack SSR App
+# 部署全栈 SSR 应用
 
-It's possible to deploy Leptos fullstack, SSR apps to any number of server or container hosting services. The most simple way to get a Leptos SSR app into production might be to use a VPS service and either run Leptos natively in a VM ([see here for more details](https://github.com/leptos-rs/start-axum?tab=readme-ov-file#executing-a-server-on-a-remote-machine-without-the-toolchain)). Alternatively, you could containerize your Leptos app and run it in [Podman](https://podman.io/) or [Docker](https://www.docker.com/) on any colocated or cloud server.
+可以将 Leptos 全栈 SSR 应用部署到多种服务器或容器托管服务中。将 Leptos SSR 应用投入生产的最简单方法可能是使用 VPS 服务，并在虚拟机中本地运行 Leptos（[更多详细信息请参见此处](https://github.com/leptos-rs/start-axum?tab=readme-ov-file#executing-a-server-on-a-remote-machine-without-the-toolchain)）。或者，你可以将 Leptos 应用容器化，并在 [Podman](https://podman.io/) 或 [Docker](https://www.docker.com/) 中运行，无论是本地托管还是云服务器都可以。
 
-There are a multitude of different deployment setups and hosting services, and in general, Leptos itself is agnostic to the deployment setup you use. With this diversity of deployment targets in mind, on this page we will go over:
+部署设置和托管服务种类繁多，总体来说，Leptos 本身对你使用的部署方式持中立态度。考虑到这些不同的部署目标，我们将探讨以下内容：
 
-- [creating a `Containerfile` (or `Dockerfile`) for use with Leptos SSR apps](#creating-a-containerfile)
-- Using a `Dockerfile` to [deploy to a cloud service](#cloud-deployments) - [for example, Fly.io](#deploy-to-flyio)
-- Deploying Leptos to [serverless runtimes](#deploy-to-serverless-runtimes) - for example, [AWS Lambda](#aws-lambda) and [JS-hosted WASM runtimes like Deno & Cloudflare](#deno--cloudflare-workers)
-- [Platforms that have not yet gained Leptos SSR support](#currently-unsupported-platforms)
+- [创建用于 Leptos SSR 应用的 `Containerfile`（或 `Dockerfile`）](#创建一个-containerfile)
+- 使用 `Dockerfile` [部署到云服务](#云部署)（例如 [Fly.io](#部署到-flyio)）
+- 将 Leptos 部署到[无服务器运行环境](#部署到无服务器运行环境)（例如 [AWS Lambda](#aws-lambda) 和 [支持 JS 的 WASM 运行时（如 Deno 和 Cloudflare）](#deno-和-cloudflare-workers)）
+- [尚未支持 Leptos SSR 的平台](#支持-leptos-的平台)
 
-_Note: Leptos does not endorse the use of any particular method of deployment or hosting service._
+_注意：Leptos 并不推荐使用任何特定的部署方式或托管服务。_
 
-## Creating a Containerfile
+## 创建一个 Containerfile
 
-The most popular way for people to deploy full-stack apps built with `cargo-leptos` is to use a cloud hosting service that supports deployment via a Podman or Docker build. Here’s a sample `Containerfile` / `Dockerfile`, which is based on the one we use to deploy the Leptos website.
+目前，人们部署使用 `cargo-leptos` 构建的全栈应用最常见的方法是使用支持 Podman 或 Docker 构建的云托管服务。以下是一个示例 `Containerfile` / `Dockerfile`，基于我们用于部署 Leptos 网站的文件。
 
 ### Debian
 
@@ -114,59 +114,57 @@ EXPOSE 8080
 CMD ["/app/leptos_start"]
 ```
 
-> Read more: [`gnu` and `musl` build files for Leptos apps](https://github.com/leptos-rs/leptos/issues/1152#issuecomment-1634916088).
+> 更多信息：[用于 Leptos 应用程序的 `gnu` 和 `musl` 构建文件。](https://github.com/leptos-rs/leptos/issues/1152#issuecomment-1634916088).
 
-## Cloud Deployments
+## 云部署
 
-### Deploy to Fly.io
+### 部署到 Fly.io
 
-One option for deploying your Leptos SSR app is to use a service like [Fly.io](https://fly.io/), which takes a Dockerfile definition of your Leptos app and runs it in a quick-starting micro-VM; Fly also offers a variety of storage options and managed DBs to use with your projects. The following example will show how to deploy a simple Leptos starter app, just to get you up and going; [see here for more about working with storage options on Fly.io](https://fly.io/docs/database-storage-guides/) if and when required.
+将 Leptos SSR 应用部署到 Fly.io 是一种选择。Fly.io 使用你的 Leptos 应用的 Dockerfile 定义，并将其运行在快速启动的微型虚拟机中。此外，Fly.io 提供了多种存储选项和托管数据库，可以与你的项目配合使用。以下示例展示了如何部署一个简单的 Leptos 入门应用，帮助你快速上手；如需使用 Fly.io 的存储选项，可以[参阅此处](https://fly.io/docs/database-storage-guides/)获取更多信息。
 
-First, create a `Dockerfile` in the root of your application and fill it in with the suggested contents (above); make sure to update the binary names in the Dockerfile example
-to the name of your own application, and make other adjustments as necessary.
+首先，在应用程序的根目录中创建一个 `Dockerfile`，并填入推荐的内容（如上文所示）；确保将 Dockerfile 示例中的二进制文件名称更新为你自己应用程序的名称，并根据需要进行其他调整。
 
-Also, ensure you have the `flyctl` CLI tool installed, and have an account set up at [Fly.io](https://fly.io/). To install `flyctl` on MacOS, Linux, or Windows WSL, run:
+确保已安装 `flyctl` CLI 工具，并在 [Fly.io](https://fly.io/) 上注册了一个账户。在 MacOS、Linux 或 Windows WSL 上安装 `flyctl` 的命令如下：
 
 ```sh
 curl -L https://fly.io/install.sh | sh
 ```
 
-If you have issues, or for installing to other platforms [see the full instructions here](https://fly.io/docs/hands-on/install-flyctl/)
+如果遇到问题，或需要在其他平台上安装，请[参阅完整安装说明](https://fly.io/docs/hands-on/install-flyctl/)。
 
-Then login to Fly.io
+接下来登录 Fly.io：
 
 ```sh
 fly auth login
 ```
 
-and manually launch your app using the command
+然后手动启动你的应用程序：
 
 ```sh
 fly launch
 ```
 
-The `flyctl` CLI tool will walk you through the process of deploying your app to Fly.io.
+`flyctl` CLI 工具会引导你完成将应用部署到 Fly.io 的过程。
 
 ```admonish note
-By default, Fly.io will auto-stop machines that don't have traffic coming to them after a certain period of time. Although Fly.io's lightweight VM's start up quickly, if you want to minimize the latency of your Leptos app and ensure it's always swift to respond, go into the generated `fly.toml` file and change the `min_machines_running` to 1 from the default of 0.
+默认情况下，Fly.io 会在一段时间内没有流量时自动停止运行的机器。虽然 Fly.io 的轻量级虚拟机启动速度很快，但如果你希望最小化 Leptos 应用的延迟，并确保其始终快速响应，可以进入生成的 `fly.toml` 文件，将 `min_machines_running` 的值从默认的 0 修改为 1。
 
-[See this page in the Fly.io docs for more details](https://fly.io/docs/apps/autostart-stop/).
+[更多详情请参阅 Fly.io 文档](https://fly.io/docs/apps/autostart-stop/)。
 ```
 
-If you would prefer to use Github Actions to manage your deployments, you will need to create a new access token via the [Fly.io](https://fly.io/) web UI.
+如果你更倾向于使用 Github Actions 管理部署，需要通过 [Fly.io](https://fly.io/) 的 Web UI 创建一个新的访问令牌。
 
-Go to "Account" > "Access Tokens" and create a token named something like "github_actions", then add the token to your Github repo's secrets by going into your project's Github repo, then clicking
-"Settings" > "Secrets and Variables" > "Actions" and creating a "New repository secret" with the name "FLY_API_TOKEN".
+前往“Account” > “Access Tokens”，创建一个名为 "github_actions" 的令牌，然后进入 Github 项目的“Settings” > “Secrets and Variables” > “Actions”，创建一个名为 "FLY_API_TOKEN" 的新仓库密钥，将令牌添加进去。
 
-To generate a `fly.toml` config file for deployment to Fly.io, you must first run the following from within the project source directory
+要生成用于部署到 Fly.io 的 `fly.toml` 配置文件，需要首先在项目源目录中运行以下命令：
 
 ```sh
 fly launch --no-deploy
 ```
 
-to create a new Fly app and register it with the service. Git commit your new `fly.toml` file.
+这将创建一个新的 Fly 应用并注册到服务中。然后将生成的 `fly.toml` 文件提交到 Git 仓库。
 
-To set up the Github Actions deployment workflow, copy the following into a `.github/workflows/fly_deploy.yml` file:
+最后，将以下内容复制到 `.github/workflows/fly_deploy.yml` 文件中，以设置 Github Actions 的部署工作流：
 
 ```admonish example collapsible=true
 
@@ -193,57 +191,57 @@ To set up the Github Actions deployment workflow, copy the following into a `.gi
 
 ```
 
-On the next commit to your Github `main` branch, your project will automatically deploy to Fly.io.
+在你下一次成功提交到 Github `main` 分支时，项目将自动部署到 Fly.io。
 
-See [the example repo here](https://github.com/diversable/fly-io-leptos-ssr-test-deploy).
+请参见[此处的示例仓库](https://github.com/diversable/fly-io-leptos-ssr-test-deploy)。
 
 ### Railway
 
-Another provider for cloud deployments is [Railway](https://railway.app/).
-Railway integrates with GitHub to automatically deploy your code.
+另一个云部署服务提供商是 [Railway](https://railway.app/)。  
+Railway 与 GitHub 集成，可以自动部署你的代码。
 
-There is an opinionated community template that gets you started quickly:
+有一个社区模板可以帮助你快速入门：
 
 [![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/template/pduaM5?referralCode=fZ-SY1)
 
-The template has renovate setup to keep dependencies up to date and supports GitHub Actions to test your code before a deploy happens.
+该模板已经配置了 Renovate 来保持依赖项的最新，并支持在部署前使用 GitHub Actions 测试代码。
 
-Railway has a free tier that does not require a credit card, and with how little resources Leptos needs that free tier should last a long time.
+Railway 提供免费的套餐，无需信用卡注册，而 Leptos 的资源需求很小，这个免费套餐应该能支持很长时间。
 
-See [the example repo here](https://github.com/marvin-bitterlich/leptos-railway).
+请参阅[示例仓库](https://github.com/marvin-bitterlich/leptos-railway)。
 
-## Deploy to Serverless Runtimes
+## 部署到无服务器运行环境
 
-Leptos supports deploying to FaaS (Function as a Service) or 'serverless' runtimes such as AWS Lambda as well as [WinterCG](https://wintercg.org/)-compatible JS runtimes such as [Deno](https://deno.com/deploy) and Cloudflare. Just be aware that serverless environments do place some restrictions on the functionality available to your SSR app when compared with VM or container type deployments (see notes, below).
+Leptos 支持部署到 FaaS（Function as a Service）或“无服务器”运行环境，例如 AWS Lambda，以及与 [WinterCG](https://wintercg.org/) 兼容的 JavaScript 运行时（如 [Deno](https://deno.com/deploy) 和 Cloudflare）。需要注意的是，与 VM 或容器类型的部署相比，无服务器环境对 SSR 应用的功能会有一些限制（请参阅以下说明）。
 
 ### AWS Lambda
 
-With a little help from the [Cargo Lambda](https://www.cargo-lambda.info/) tool, Leptos SSR apps can be deployed to AWS Lambda. A starter template repo using Axum as the server is available at [leptos-rs/start-aws](https://github.com/leptos-rs/start-aws); the instructions there can be adapted for you to use a Leptos+Actix-web server as well. The starter repo includes a Github Actions script for CI/CD, as well as instructions for setting up your Lambda functions and getting the necessary credentials for cloud deployment.
+在 [Cargo Lambda](https://www.cargo-lambda.info/) 工具的帮助下，Leptos SSR 应用可以部署到 AWS Lambda。一个使用 Axum 作为服务器的入门模板仓库可在 [leptos-rs/start-aws](https://github.com/leptos-rs/start-aws) 找到；该说明也可以适配用于 Leptos + Actix-web 的服务器。该入门模板仓库包括用于 CI/CD 的 GitHub Actions 脚本，以及设置 Lambda 函数和获取云部署所需凭据的说明。
 
-However, please keep in mind that some native server functionality does not work with FaaS services like Lambda because the environment is not necessarily consistent from one request to the next. In particular, the ['start-aws' docs](https://github.com/leptos-rs/start-aws#state) state that "since AWS Lambda is a serverless platform, you'll need to be more careful about how you manage long-lived state. Writing to disk or using a state extractor will not work reliably across requests. Instead, you'll need a database or other microservices that you can query from the Lambda function."
+但请注意，一些本地服务器功能无法在像 Lambda 这样的 FaaS 服务中正常工作，因为环境在不同请求之间不一定一致。特别是 ['start-aws' 文档](https://github.com/leptos-rs/start-aws#state) 提到：“由于 AWS Lambda 是一个无服务器平台，您需要更加小心如何管理长时间运行的状态。写入磁盘或使用状态提取器在请求之间无法可靠地工作。相反，您需要使用数据库或其他微服务来从 Lambda 函数中查询数据。”
 
-The other factor to bear in mind is the 'cold-start' time for functions as a service - depending on your use case and the FaaS platform you use, this may or may not meet your latency requirements; you may need to keep one function running at all times to optimize the speed of your requests.
+另一个需要注意的因素是 FaaS 服务的“冷启动”时间——根据您的用例和所使用的 FaaS 平台，这可能会或可能不会满足您的延迟要求；如果需要优化请求速度，可能需要保持一个函数始终运行。
 
-### Deno & Cloudflare Workers
+### Deno 和 Cloudflare Workers
 
-Currently, Leptos-Axum supports running in Javascript-hosted WebAssembly runtimes such as Deno, Cloudflare Workers, etc. This option requires some changes to the setup of your source code (for example, in `Cargo.toml` you must define your app using `crate-type = ["cdylib"]` and the "wasm" feature must be enabled for `leptos_axum`). [The Leptos HackerNews JS-fetch example](https://github.com/leptos-rs/leptos/tree/leptos_0.6/examples/hackernews_js_fetch) demonstrates the required modifications and shows how to run an app in the Deno runtime. Additionally, the [`leptos_axum` crate docs](https://docs.rs/leptos_axum/latest/leptos_axum/#js-fetch-integration) are a helpful reference when setting up your own `Cargo.toml` file for JS-hosted WASM runtimes.
+目前，Leptos-Axum 支持在 JavaScript 托管的 WebAssembly 运行时（例如 Deno、Cloudflare Workers 等）中运行。这种选择需要对源代码的设置进行一些更改（例如，在 `Cargo.toml` 中必须使用 `crate-type = ["cdylib"]` 定义应用，并为 `leptos_axum` 启用 "wasm" 功能）。[Leptos HackerNews JS-fetch 示例](https://github.com/leptos-rs/leptos/tree/leptos_0.6/examples/hackernews_js_fetch) 演示了所需的修改，并展示了如何在 Deno 运行时运行应用。此外，[`leptos_axum` crate 文档](https://docs.rs/leptos_axum/latest/leptos_axum/#js-fetch-integration) 也是设置适用于 JS 托管 WASM 运行时的 `Cargo.toml` 文件时的有用参考。
 
-While the initial setup for JS-hosted WASM runtimes is not onerous, the more important restriction to keep in mind is that since your app will be compiled to WebAssembly (`wasm32-unknown-unknown`) on the server as well as the client, you must ensure that the crates you use in your app are all WASM-compatible; this may or may not be a deal-breaker depending on your app's requirements, as not all crates in the Rust ecosystem have WASM support.
+虽然为 JS 托管 WASM 运行时的初始设置并不复杂，但需要注意一个重要限制：由于您的应用将在服务器端和客户端都被编译为 WebAssembly（`wasm32-unknown-unknown`），因此必须确保应用中使用的所有 crates 都支持 WASM。这可能是一个限制条件，因为 Rust 生态系统中的所有 crates 并非都支持 WASM。
 
-If you're willing to live with the limitations of WASM server-side, the best place to get started right now is by checking out the [example of running Leptos with Deno](https://github.com/leptos-rs/leptos/tree/leptos_0.6/examples/hackernews_js_fetch) in the official Leptos Github repo.
+如果您能接受 WASM 服务器端的限制，那么目前最好的起点是查看 Leptos 官方 GitHub 仓库中 [使用 Deno 运行 Leptos 的示例](https://github.com/leptos-rs/leptos/tree/leptos_0.6/examples/hackernews_js_fetch)。
 
-## Platforms Working on Leptos Support
+## 支持 Leptos 的平台
 
-### Deploy to Spin Serverless WASI (with Leptos SSR)
+### 部署到 Spin 无服务器 WASI（支持 Leptos SSR）
 
-WebAssembly on the server has been gaining steam lately, and the developers of the open source serverless WebAssembly framework Spin are working on natively supporting Leptos. While the Leptos-Spin SSR integration is still in its early stages, there is a working example you may wish to try out.
+服务器端的 WebAssembly 近年来发展迅速，开源的无服务器 WebAssembly 框架 Spin 的开发者正在努力实现对 Leptos 的原生支持。尽管 Leptos-Spin 的 SSR 集成还处于早期阶段，但已经有一个可用的示例可以尝试。
 
-The full set of instructions to get Leptos SSR & Spin working together are available as [a post on the Fermyon blog](https://www.fermyon.com/blog/leptos-spin-get-started), or if you want to skip the article and just start playing around with a working starter repo, [see here](https://github.com/diversable/leptos-spin-ssr-test).
+关于让 Leptos SSR 和 Spin 一起工作的完整说明，请参考 [Fermyon 博客的这篇文章](https://www.fermyon.com/blog/leptos-spin-get-started)。如果您想跳过文章直接尝试一个可用的入门仓库，[请点击这里](https://github.com/diversable/leptos-spin-ssr-test)。
 
-### Deploy to Shuttle.rs
+### 部署到 Shuttle.rs
 
-Several Leptos users have asked about the possibility of using the Rust-friendly [Shuttle.rs](https://www.shuttle.rs/) service to deploy Leptos apps. Unfortunately, Leptos is not officially supported by the Shuttle.rs service at the moment.
+许多 Leptos 用户询问是否可以使用对 Rust 友好的 [Shuttle.rs](https://www.shuttle.rs/) 服务来部署 Leptos 应用。不幸的是，目前 Shuttle.rs 服务尚未正式支持 Leptos。
 
-However, the folks at Shuttle.rs are committed to getting Leptos support in the future; if you would like to keep up-to-date on the status of that work, keep an eye on [this Github issue](https://github.com/shuttle-hq/shuttle/issues/1002#issuecomment-1853661643).
+不过，Shuttle.rs 的开发团队承诺未来将实现对 Leptos 的支持。如果您想了解该工作的最新进展，请关注[此 Github 问题](https://github.com/shuttle-hq/shuttle/issues/1002#issuecomment-1853661643)。
 
-Additionally, some effort has been made to get Shuttle working with Leptos, but to date, deploys to the Shuttle cloud are still not working as expected. That work is available here, if you would like to investigate for yourself or contribute fixes: [Leptos Axum Starter Template for Shuttle.rs](https://github.com/Rust-WASI-WASM/shuttle-leptos-axum).
+此外，已经有一些尝试让 Shuttle 与 Leptos 协作，但目前为止，部署到 Shuttle 云仍然未达到预期效果。如果您感兴趣，可以自行研究或贡献修复：[Shuttle.rs 的 Leptos Axum 入门模板](https://github.com/Rust-WASI-WASM/shuttle-leptos-axum)。

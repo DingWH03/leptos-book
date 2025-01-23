@@ -1,24 +1,24 @@
-# Extractors
+# 提取器（Extractors）
 
-The server functions we looked at in the last chapter showed how to run code on the server, and integrate it with the user interface you’re rendering in the browser. But they didn’t show you much about how to actually use your server to its full potential.
+上一章的服务器函数展示了如何在服务器上运行代码，并将其与浏览器中渲染的用户界面集成。但它们并没有深入展示如何充分利用服务器的潜力。
 
-## Server Frameworks
+## 服务器框架
 
-We call Leptos a “full-stack” framework, but “full-stack” is always a misnomer (after all, it never means everything from the browser to your power company.) For us, “full stack” means that your Leptos app can run in the browser, and can run on the server, and can integrate the two, drawing together the unique features available in each; as we’ve seen in the book so far, a button click on the browser can drive a database read on the server, both written in the same Rust module. But Leptos itself doesn’t provide the server (or the database, or the operating system, or the firmware, or the electrical cables...)
+我们称 Leptos 为“全栈”框架，但“全栈”总是有些夸大（毕竟，它并不意味着覆盖从浏览器到你的电力公司的所有层面）。对我们来说，“全栈”意味着你的 Leptos 应用可以在浏览器中运行，也可以在服务器上运行，并且可以将两者整合在一起，充分利用每一方的独特特性。正如我们在本书中看到的那样，浏览器中的一个按钮点击可以驱动服务器上的数据库读取，而这一切都可以写在同一个 Rust 模块中。但 Leptos 本身并不提供服务器（也不提供数据库、操作系统、固件或电缆...）。
 
-Instead, Leptos provides integrations for the two most popular Rust web server frameworks, Actix Web ([`leptos_actix`](https://docs.rs/leptos_actix/latest/leptos_actix/)) and Axum ([`leptos_axum`](https://docs.rs/leptos_axum/latest/leptos_axum/)). We’ve built integrations with each server’s router so that you can simply plug your Leptos app into an existing server with `.leptos_routes()`, and easily handle server function calls.
+相反，Leptos 提供了与 Rust 最流行的两个 Web 服务器框架的集成：Actix Web（[`leptos_actix`](https://docs.rs/leptos_actix/latest/leptos_actix/)）和 Axum（[`leptos_axum`](https://docs.rs/leptos_axum/latest/leptos_axum/)）。我们为每个服务器的路由器构建了集成，使你可以通过 `.leptos_routes()` 简单地将 Leptos 应用接入现有服务器，并轻松处理服务器函数调用。
 
-> If you haven’t seen our [Actix](https://github.com/leptos-rs/start) and [Axum](https://github.com/leptos-rs/start-axum) templates, now’s a good time to check them out.
+> 如果你还没有查看我们的 [Actix 模板](https://github.com/leptos-rs/start) 和 [Axum 模板](https://github.com/leptos-rs/start-axum)，现在是个好时机去看看。
 
-## Using Extractors
+## 使用提取器
 
-Both Actix and Axum handlers are built on the same powerful idea of **extractors**. Extractors “extract” typed data from an HTTP request, allowing you to access server-specific data easily.
+Actix 和 Axum 的处理程序基于相同的强大理念：**提取器（extractors）**。提取器从 HTTP 请求中“提取”类型化数据，使你可以轻松访问与服务器相关的数据。
 
-Leptos provides `extract` helper functions to let you use these extractors directly in your server functions, with a convenient syntax very similar to handlers for each framework.
+Leptos 提供了 `extract` 辅助函数，允许你在服务器函数中直接使用这些提取器，并提供了类似于每个框架处理程序的便捷语法。
 
-### Actix Extractors
+### Actix 提取器
 
-The [`extract` function in `leptos_actix`](https://docs.rs/leptos_actix/latest/leptos_actix/fn.extract.html) takes a handler function as its argument. The handler follows similar rules to an Actix handler: it is an async function that receives arguments that will be extracted from the request and returns some value. The handler function receives that extracted data as its arguments, and can do further `async` work on them inside the body of the `async move` block. It returns whatever value you return back out into the server function.
+[`leptos_actix` 中的 `extract` 函数](https://docs.rs/leptos_actix/latest/leptos_actix/fn.extract.html) 将处理程序函数作为参数。处理程序遵循与 Actix 处理程序类似的规则：它是一个异步函数，接收从请求中提取的参数，并返回一些值。处理程序函数将提取到的数据作为其参数，并可以在 `async move` 块中对其进行进一步异步操作。函数返回的值会被返回到服务器函数中。
 
 ```rust
 use serde::Deserialize;
@@ -39,9 +39,9 @@ pub async fn actix_extract() -> Result<String, ServerFnError> {
 }
 ```
 
-### Axum Extractors
+### Axum 提取器
 
-The syntax for the [`leptos_axum::extract`](https://docs.rs/leptos_axum/latest/leptos_axum/fn.extract.html) function is very similar.
+[`leptos_axum::extract`](https://docs.rs/leptos_axum/latest/leptos_axum/fn.extract.html) 函数的语法非常类似。
 
 ```rust
 use serde::Deserialize;
@@ -62,15 +62,14 @@ pub async fn axum_extract() -> Result<String, ServerFnError> {
 }
 ```
 
-These are relatively simple examples accessing basic data from the server. But you can use extractors to access things like headers, cookies, database connection pools, and more, using the exact same `extract()` pattern.
+这些是访问服务器基本数据的简单示例。但你可以使用提取器访问诸如请求头、cookies、数据库连接池等内容，使用的方式与上述 `extract()` 模式完全相同。
 
-The Axum `extract` function only supports extractors for which the state is `()`. If you need an extractor that uses `State`, you should use [`extract_with_state`](https://docs.rs/leptos_axum/latest/leptos_axum/fn.extract_with_state.html). This requires you to provide the state. You can do this by extending the existing `LeptosOptions` state using the Axum `FromRef` pattern, which providing the state as context during render and server functions with custom handlers.
+Axum 的 `extract` 函数仅支持状态为 `()` 的提取器。如果你需要一个使用 `State` 的提取器，可以使用 [`extract_with_state`](https://docs.rs/leptos_axum/latest/leptos_axum/fn.extract_with_state.html)。这需要你提供状态，可以通过使用 Axum 的 `FromRef` 模式扩展现有的 `LeptosOptions` 状态，并在渲染和服务器函数期间通过上下文提供状态。
 
 ```rust
 use axum::extract::FromRef;
 
-/// Derive FromRef to allow multiple items in state, using Axum’s
-/// SubStates pattern.
+/// 使用 Axum 的子状态模式派生 FromRef，以允许状态包含多个条目。
 #[derive(FromRef, Debug, Clone)]
 pub struct AppState{
     pub leptos_options: LeptosOptions,
@@ -78,14 +77,14 @@ pub struct AppState{
 }
 ```
 
-[Click here for an example of providing context in custom handlers](https://github.com/leptos-rs/leptos/blob/19ea6fae6aec2a493d79cc86612622d219e6eebb/examples/session_auth_axum/src/main.rs#L24-L44).
+[点击这里查看在自定义处理程序中提供上下文的示例](https://github.com/leptos-rs/leptos/blob/19ea6fae6aec2a493d79cc86612622d219e6eebb/examples/session_auth_axum/src/main.rs#L24-L44)。
 
-#### Axum State
+#### Axum 状态
 
-Axum's typical pattern for dependency injection is to provide a `State`, which can then be extracted in your route handler. Leptos provides its own method of dependency injection via context. Context can often be used instead of `State` to provide shared server data (for example, a database connection pool).
+Axum 的典型依赖注入模式是提供一个 `State`，然后在路由处理程序中提取它。Leptos 提供了一种通过上下文进行依赖注入的方法。上下文通常可以代替 `State` 来提供共享的服务器数据（例如，一个数据库连接池）。
 
 ```rust
-let connection_pool = /* some shared state here */;
+let connection_pool = /* 一些共享状态 */;
 
 let app = Router::new()
     .leptos_routes_with_context(
@@ -94,12 +93,12 @@ let app = Router::new()
         move || provide_context(connection_pool.clone()),
         App,
     )
-    // etc.
+    // 其他配置
 ```
 
-This context can then be accessed with a simple `use_context::<T>()` inside your server functions.
+然后可以在服务器函数中使用简单的 `use_context::<T>()` 来访问此上下文。
 
-If you _need_ to use `State` in a server function—for example, if you have an existing Axum extractor that requires `State`—that is also possible using Axum's [`FromRef`](https://docs.rs/axum/latest/axum/extract/derive.FromRef.html) pattern and [`extract_with_state`](https://docs.rs/leptos_axum/latest/leptos_axum/fn.extract_with_state.html). Essentially you'll need to provide the state both via context and via Axum router state:
+如果在服务器函数中**必须**使用 `State`——例如，你有一个现有的 Axum 提取器需要 `State`——也可以通过 Axum 的 [`FromRef`](https://docs.rs/axum/latest/axum/extract/derive.FromRef.html) 模式和 [`extract_with_state`](https://docs.rs/leptos_axum/latest/leptos_axum/fn.extract_with_state.html) 实现。这需要你同时通过上下文和 Axum 路由状态提供状态：
 
 ```rust
 #[derive(FromRef, Debug, Clone)]
@@ -113,7 +112,7 @@ let app_state = MyData {
     leptos_options,
 };
 
-// build our application with a route
+// 构建我们的应用
 let app = Router::new()
     .leptos_routes_with_context(
         &app_state,
@@ -136,10 +135,10 @@ pub async fn uses_state() -> Result<(), ServerFnError> {
 }
 ```
 
-## A Note about Data-Loading Patterns
+## 关于数据加载模式的说明
 
-Because Actix and (especially) Axum are built on the idea of a single round-trip HTTP request and response, you typically run extractors near the “top” of your application (i.e., before you start rendering) and use the extracted data to determine how that should be rendered. Before you render a `<button>`, you load all the data your app could need. And any given route handler needs to know all the data that will need to be extracted by that route.
+因为 Actix 和（尤其是）Axum 是基于单次 HTTP 请求和响应的模型构建的，因此你通常会在应用的“顶部”运行提取器（即在渲染之前），并使用提取到的数据来决定如何渲染。在渲染 `<button>` 之前，你会加载应用可能需要的所有数据。而任何给定的路由处理程序都需要知道该路由需要提取的所有数据。
 
-But Leptos integrates both the client and the server, and it’s important to be able to refresh small pieces of your UI with new data from the server without forcing a full reload of all the data. So Leptos likes to push data loading “down” in your application, as far towards the leaves of your user interface as possible. When you click a `<button>`, it can refresh just the data it needs. This is exactly what server functions are for: they give you granular access to data to be loaded and reloaded.
+但 Leptos 同时集成了客户端和服务器，因此能够刷新 UI 的小片段而无需完全重新加载所有数据非常重要。Leptos 更喜欢将数据加载“向下推”，尽量靠近用户界面的叶子节点。当你点击一个 `<button>` 时，它可以只刷新它需要的数据。这正是服务器函数的用途：它们让你能够以细粒度访问需要加载和重新加载的数据。
 
-The `extract()` functions let you combine both models by using extractors in your server functions. You get access to the full power of route extractors, while decentralizing knowledge of what needs to be extracted down to your individual components. This makes it easier to refactor and reorganize routes: you don’t need to specify all the data a route needs up front.
+`extract()` 函数允许你通过在服务器函数中使用提取器，结合这两种模型。你可以获得路由提取器的全部功能，同时将提取需求分散到单个组件，从而更容易重构和重新组织路由，无需提前指定路由所需的所有数据。

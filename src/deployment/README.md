@@ -1,12 +1,11 @@
-# Deployment
+# 部署
 
-There are as many ways to deploy a web application as there are developers, let alone applications. But there are a couple useful tips to keep in mind when deploying an app.
+部署一个 Web 应用的方法多种多样，开发者有多少种方式，应用就有多少种。但在部署应用时，有一些通用的建议值得牢记。
 
-## General Advice
+## 通用建议
 
-1. Remember: Always deploy Rust apps built in `--release` mode, not debug mode. This has a huge effect on both performance and binary size.
-2. Test locally in release mode as well. The framework applies certain optimizations in release mode that it does not apply in debug mode, so it’s possible for bugs to surface at this point. (If your app behaves differently or you do encounter a bug, it’s likely a framework-level bug and you should open a GitHub issue with a reproduction.)
-3. See the chapter on "Optimizing WASM Binary Size" for additional tips and tricks to further improve the time-to-interactive metric for your WASM app on first load.
+1. **请务必：始终以 `--release` 模式构建 Rust 应用，而非调试模式（debug mode）。** 这对性能和二进制文件的大小有巨大的影响。
+2. **在本地以 release 模式进行测试。** 框架在 release 模式下会应用某些优化，而在调试模式下不会。因此，在这一阶段可能会出现一些问题。（如果你的应用行为不同或出现问题，很可能是框架级别的 bug，你应该在 GitHub 上提交 issue 并附上复现步骤。）
+3. **查看“优化 WASM 二进制文件大小”章节**，了解更多技巧以进一步提高 WASM 应用首次加载的交互速度。
 
-> We asked users to submit their deployment setups to help with this chapter. I’ll quote from them below, but you can read the full thread [here](https://github.com/leptos-rs/leptos/issues/1152).
-
+> 我们曾向用户征集他们的部署设置，用于帮助编写这一章节。以下会引用其中的内容，但你可以在[此处](https://github.com/leptos-rs/leptos/issues/1152)阅读完整的讨论。

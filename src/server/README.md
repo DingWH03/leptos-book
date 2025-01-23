@@ -1,11 +1,11 @@
-# Working with the Server
+# 与服务器协作
 
-The previous section described the process of server-side rendering, using the server to generate an HTML version of the page that will become interactive in the browser. So far, everything has been “isomorphic”; in other words, your app has had the “same (_iso_) shape (_morphe_)” on the client and the server.
+前一节描述了服务器端渲染的过程，即使用服务器生成页面的 HTML 版本，该页面随后将在浏览器中变得交互式。到目前为止，所有内容都是“同构的”；换句话说，你的应用在客户端和服务器上具有相同的“形状”（“iso”表示相同，“morphe”表示形状）。
 
-But a server can do a lot more than just render HTML! In fact, a server can do a whole bunch of things your browser _can’t,_ like reading from and writing to a SQL database.
+但是，服务器不仅仅能渲染 HTML！实际上，服务器还能做很多浏览器 _无法_ 完成的事情，比如读取和写入 SQL 数据库。
 
-If you’re used to building JavaScript frontend apps, you’re probably used to calling out to some kind of REST API to do this sort of server work. If you’re used to building sites with PHP or Python or Ruby (or Java or C# or...), this server-side work is your bread and butter, and it’s the client-side interactivity that tends to be an afterthought.
+如果你习惯于构建 JavaScript 前端应用程序，你可能已经习惯通过某种 REST API 调用来完成这类服务器工作。如果你习惯用 PHP、Python 或 Ruby（或者 Java、C# 等）构建网站，这些服务器端的工作可能就是你的拿手好戏，而客户端的交互性往往是事后才考虑的事情。
 
-With Leptos, you can do both: not only in the same language, not only sharing the same types, but even in the same files!
+使用 Leptos，你可以同时完成两者：不仅使用相同的语言、共享相同的类型，甚至可以在同一个文件中实现！
 
-This section will talk about how to build the uniquely-server-side parts of your application.
+本节将讨论如何构建应用程序中那些仅限服务器端的部分。

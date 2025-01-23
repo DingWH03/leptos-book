@@ -1,59 +1,59 @@
-# Hydration Bugs _(and how to avoid them)_
+# Hydration Bugs _(以及如何避免它们)_
 
-## A Thought Experiment
+## 一个思维实验
 
-Let’s try an experiment to test your intuitions. Open up an app you’re server-rendering with `cargo-leptos`. (If you’ve just been using `trunk` so far to play with examples, go [clone a `cargo-leptos` template](./21_cargo_leptos.md) just for the sake of this exercise.)
+让我们做个实验来测试你的直觉。打开一个使用 `cargo-leptos` 进行服务器渲染的应用。（如果你之前只是使用 `trunk` 来运行示例，现在可以[克隆一个 `cargo-leptos` 模板](./21_cargo_leptos.md)来完成这个练习。）
 
-Put a log somewhere in your root component. (I usually call mine `<App/>`, but anything will do.)
+在你的根组件中放一个日志。（我通常将它命名为 `<App/>`，但任何名称都可以。）
 
 ```rust
 #[component]
 pub fn App() -> impl IntoView {
 	logging::log!("where do I run?");
-	// ... whatever
+	// ... 其他代码
 }
 ```
 
-And let’s fire it up
+然后启动它：
 
 ```bash
 cargo leptos watch
 ```
 
-Where do you expect `where do I run?` to log?
+你认为 `where do I run?` 会在哪里打印日志？
 
-- In the command line where you’re running the server?
-- In the browser console when you load the page?
-- Neither?
-- Both?
+- 在运行服务器的命令行中？
+- 在加载页面时的浏览器控制台中？
+- 都不会？
+- 两个地方都打印？
 
-Try it out.
-
-...
+试试看。
 
 ...
 
 ...
 
-Okay, consider the spoiler alerted.
+...
 
-You’ll notice of course that it logs in both places, assuming everything goes according to plan. In fact on the server it logs twice—first during the initial server startup, when Leptos renders your app once to extract the route tree, then a second time when you make a request. Each time you reload the page, `where do I run?` should log once on the server and once on the client.
+好的，以下是答案提示。
 
-If you think about the description in the last couple sections, hopefully this makes sense. Your application runs once on the server, where it builds up a tree of HTML which is sent to the client. During this initial render, `where do I run?` logs on the server.
+你会注意到它当然会在两个地方打印日志（假设一切正常）。实际上，在服务器上会打印两次——第一次是在服务器启动时，Leptos 渲染你的应用以提取路由树；第二次是在你发送请求时。每次你重新加载页面时，`where do I run?` 会在服务器和客户端各打印一次日志。
 
-Once the WASM binary has loaded in the browser, your application runs a second time, walking over the same user interface tree and adding interactivity.
+如果你思考一下前几节的描述，希望这会有意义。你的应用程序会在服务器上运行一次，构建一棵 HTML 树，并将其发送到客户端。在这次初始渲染期间，`where do I run?` 会在服务器上打印日志。
 
-> Does that sound like a waste? It is, in a sense. But reducing that waste is a genuinely hard problem. It’s what some JS frameworks like Qwik are intended to solve, although it’s probably too early to tell whether it’s a net performance gain as opposed to other approaches.
+一旦 WASM 二进制文件加载到浏览器中，你的应用会第二次运行，遍历同一用户界面树并添加交互性。
 
-## The Potential for Bugs
+> 这听起来像是浪费吗？从某种意义上来说确实是。但减少这种浪费是一个真正困难的问题。这正是一些 JS 框架（例如 Qwik）试图解决的问题，尽管目前判断它是否比其他方法在性能上有净增益可能还为时过早。
 
-Okay, hopefully all of that made sense. But what does it have to do with the title of this chapter, which is “Hydration bugs (and how to avoid them)”?
+## 潜在的 Bug
 
-Remember that the application needs to run on both the server and the client. This generates a few different sets of potential issues you need to know how to avoid.
+好了，希望以上内容都让你理解了。但这些内容和本章标题“Hydration Bugs（及其避免方法）”有什么关系呢？
 
-### Mismatches between server and client code
+记住，应用程序需要同时运行在服务器和客户端上。这会产生一些潜在的问题，你需要知道如何避免。
 
-One way to create a bug is by creating a mismatch between the HTML that’s sent down by the server and what’s rendered on the client. It’s actually fairly hard to do this unintentionally, I think (at least judging by the bug reports I get from people.) But imagine I do something like this
+### 服务器和客户端代码的不匹配
+
+一个常见的 Bug 来源是服务器发送的 HTML 和客户端渲染的内容之间的不匹配。这种问题其实几乎不小心就发生（至少从我收到的 Bug 报告来看是这样的）。但想象我做了这样的事情：
 
 ```rust
 #[component]
@@ -69,30 +69,31 @@ pub fn App() -> impl IntoView {
 }
 ```
 
-In other words, if this is being compiled to WASM, it has three items; otherwise it’s empty.
+换句话说，如果被编译成 WASM，就会有三个元素；否则它是空的。
 
-When I load the page in the browser, I see nothing. If I open the console I see a panic:
+当我在浏览器中加载页面时，我什么都看不到。如果我打开控制台，会看到一个 panic：
 
 ```
 ssr_modes.js:423 panicked at /.../tachys/src/html/element/mod.rs:352:14:
 called `Option::unwrap()` on a `None` value
 ```
 
-The WASM version of your app, running in the browser, is expecting to find an element (in fact, it’s expecting three elements!) But the HTML sent from the server has none.
+运行在浏览器中的 WASM 版本应用程序期望找到一些元素（事实上它期望找到三个元素！），但服务器发送的 HTML 中却没有这些内容。
 
-#### Solution
+#### 解决方案
 
-It’s pretty rare that you do this intentionally, but it could happen from somehow running different logic on the server and in the browser. If you’re seeing warnings like this and you don’t think it’s your fault, it’s much more likely that it’s a bug with `<Suspense/>` or something. Feel free to go ahead and open an [issue](https://github.com/leptos-rs/leptos/issues) or [discussion](https://github.com/leptos-rs/leptos/discussions) on GitHub for help.
+虽然你很少会有意这样做，但通过某种方式在服务器和浏览器中运行不同的逻辑，这种问题还是有可能发生。如果你看到类似的警告，并且认为不是你的问题，很可能是 `<Suspense/>` 或其他功能的 Bug。欢迎前往 [GitHub 提交 issue](https://github.com/leptos-rs/leptos/issues) 或 [参与讨论](https://github.com/leptos-rs/leptos/discussions) 寻求帮助。
 
-### Invalid/edge-case HTML, and mismatches between HTML and the DOM
+### 无效/边缘情况的 HTML，以及 HTML 与 DOM 的不匹配
 
-Servers respond to requests with HTML. The browser then parses that HTML into a tree called the Document Object Model (DOM). During hydration, Leptos walks over the view tree of your application, hydrating an element, then moving into its children, hydrating the first child, then moving to its siblings, and so on. This assumes that the tree of HTML produced by the your application on the server maps directly onto the DOM tree into which the browser parses that HTML.
+服务器通过 HTML 响应请求，浏览器然后将该 HTML 解析为称为文档对象模型（DOM）的树。在 Hydration 过程中，Leptos 会遍历应用程序的视图树：先 Hydrate 一个元素，然后进入它的子元素，Hydrate 第一个子元素，再移动到它的兄弟节点，以此类推。这假设应用程序在服务器上生成的 HTML 树与浏览器解析这些 HTML 后生成的 DOM 树完全对应。
 
-There are a few cases to be aware of in which the tree of HTML created by your `view` and the DOM tree might not correspond exactly: these can cause hydration errors.
+以下是一些需要注意的情况，这些情况下由你的 `view` 创建的 HTML 树和 DOM 树可能并不完全对应，从而导致 Hydration 错误。
 
-#### Invalid HTML
+#### 无效的 HTML
 
-Here’s a very simple application that causes a hydration error:
+以下是一个会引发 Hydration 错误的简单应用：
+
 ```rust
 #[component]
 pub fn App() -> impl IntoView {
@@ -108,7 +109,8 @@ pub fn App() -> impl IntoView {
 }
 ```
 
-This will give an error message like 
+这会显示如下错误信息：
+
 ```
 A hydration error occurred while trying to hydrate an element defined at src/app.rs:6:14.
 
@@ -117,29 +119,31 @@ The framework expected a text node, but found this instead:  <p></p>
 The hydration mismatch may have occurred slightly earlier, but this is the first time the framework found a node of an unexpected type.
 ```
 
-(In most browser devtools, you can right-click on that `<p></p>` to show where it appears in the DOM, which is handy.)
+（在大多数浏览器的开发者工具中，你可以右键单击 `<p></p>`，查看它在 DOM 中的位置，非常方便。）
 
-If you look in the DOM inspector, you’ll see that it instead of a `<div>` inside a `<p>`, it shows:
+如果你查看 DOM 检查器，会发现 `<p>` 中没有 `<div>`，而是显示为：
+
 ```html
 <p></p>
 <div>First</div>
 <p></p>
 ```
-That’s because this is invalid HTML! A `<div>` cannot go inside a `<p>`. When the browser parses that `<div>`, it actually closes the preceding `<p>`, then opens the `<div>`; then, when it sees the (now-unmatched) closing `</p>`, it treats it as a new, empty `<p>`.
 
-As a result, our DOM tree no longer matches the expected view tree, and a hydration error ensues.
+这是因为这是无效的 HTML！`<div>` 不能放在 `<p>` 中。当浏览器解析到 `<div>` 时，它会自动关闭前面的 `<p>`，然后打开 `<div>`；随后，当它看到未匹配的 `</p>` 时，会将其视为一个新的、空的 `<p>`。
 
-Unfortunately, it is difficult to ensure the validity of HTML in the view at compile time using our current model, and without an effect on compile times across the board. For now, if you run into issues like this, consider running the HTML output through a validator. (In the case above, the W3C HTML Validator does in fact show an error!)
+因此，我们的 DOM 树不再匹配预期的视图树，进而导致 Hydration 错误。
+
+目前，使用现有模型在编译时确保 HTML 的有效性是困难的，因为这会对整体编译时间造成影响。对于这种问题，可以考虑将 HTML 输出通过验证器进行检查。（如上例，W3C HTML Validator 的确会报告错误！）
 
 ```admonish info
-You may notice some bugs of this arise when migrating from 0.6 to 0.7. This is due to a change in how hydration works.
+你可能会注意到，从 Leptos 0.6 迁移到 0.7 时，会出现一些相关的 Bug。这是因为 Hydration 的工作方式发生了变化。
 
-Leptos 0.1-0.6 used a method of hydration in which each HTML element was given a unique ID, which was then used to find it in the DOM by ID. Leptos 0.7 instead began walking over the DOM directly, hydrating each element as it came. This has much better performance characteristics (shorter, cleaner HTML output and faster hydration times) but is less resilient to the invalid or edge-case HTML examples above. Perhaps more importantly, this approach also fixes a number of *other* edge cases and bugs in hydration, making the framework more resilient on net.
+Leptos 0.1-0.6 使用了一种通过为每个 HTML 元素分配唯一 ID 的 Hydration 方法，然后通过该 ID 在 DOM 中找到元素。而 Leptos 0.7 改为直接遍历 DOM，按顺序 Hydrate 每个元素。这种方法具有更好的性能特点（HTML 输出更简洁，Hydration 时间更短），但对上述无效或边缘情况的 HTML 例子更敏感。更重要的是，这种方法还修复了许多 *其他* Hydration 中的边缘情况和 Bug，使框架在整体上更为健壮。
 ```
 
-#### `<table>` without `<tbody>`
+#### 没有 `<tbody>` 的 `<table>`
 
-There’s one additional edge case I’m aware of, in which *valid* HTML produces a DOM tree that differs from the view tree, and that’s `<table>`. When (most) browsers parse an HTML `<table>`, they insert a `<tbody>` into the DOM, whether you included one or not.
+还有一个边缘情况，即 *有效* 的 HTML 会生成与视图树不同的 DOM 树，这种情况出现在 `<table>` 中。当（大多数）浏览器解析 HTML 的 `<table>` 时，无论你是否包含 `<tbody>`，它们都会在 DOM 中插入一个 `<tbody>`。
 
 ```rust
 #[component]
@@ -156,9 +160,9 @@ pub fn App() -> impl IntoView {
 }
 ```
 
-Again, this generates a hydration error, because the browser has inserted an additional `<tbody>` into the DOM tree that was not in your view.
+再次运行时，这会生成一个 Hydration 错误，因为浏览器在 DOM 树中插入了一个额外的 `<tbody>`，而这个 `<tbody>` 并没有出现在视图树中。
 
-Here, the fix is simple: adding `<tbody>`:
+解决方法非常简单：添加 `<tbody>`：
 ```rust
 #[component]
 pub fn App() -> impl IntoView {
@@ -176,38 +180,38 @@ pub fn App() -> impl IntoView {
 }
 ```
 
-(It would be worth exploring in the future whether we can lint for this particular quirk more easily than linting for valid HTML.)
+（未来可以探索是否可以更轻松地为这个特殊的情况添加 lint，而不是为所有有效 HTML 添加 lint。）
 
-#### General Advice
+#### 一般建议
 
-These kind of mismatches can be tricky. In general, my recommendation for debugging:
-1. Right-click on the element in the message to see where the framework first *notices* the problem.
-2. Compare the DOM at that point and above it, checking for mismatches with your view tree. Are there extra elements? Missing elements?
+这类不匹配问题可能会很棘手。一般来说，我的调试建议如下：
 
+1. 右键单击错误信息中的元素，查看框架首次 *发现* 问题的位置。
+2. 对比该位置及其上方的 DOM，检查是否与视图树存在不匹配的情况。是否有多余的元素？是否缺少某些元素？
 
-### Not all client code can run on the server
+### 并非所有客户端代码都能在服务器上运行
 
-Imagine you happily import a dependency like `gloo-net` that you’ve been used to using to make requests in the browser, and use it in a `create_resource` in a server-rendered app.
+假设你愉快地导入了一个像 `gloo-net` 这样的依赖库，之前你习惯用它来在浏览器中发起请求，并在一个服务器渲染的应用中将其用于 `create_resource`。
 
-You’ll probably instantly see the dreaded message
+你可能会立刻看到令人头痛的消息：
 
 ```
 panicked at 'cannot call wasm-bindgen imported functions on non-wasm targets'
 ```
 
-Uh-oh.
+糟糕。
 
-But of course this makes sense. We’ve just said that your app needs to run on the client and the server.
+不过，这其实是可以理解的。我们刚刚提到，应用需要同时运行在客户端和服务器端。
 
-#### Solution
+#### 解决方案
 
-There are a few ways to avoid this:
+以下是一些避免这种问题的方法：
 
-1. Only use libraries that can run on both the server and the client. [`reqwest`](https://docs.rs/reqwest/latest/reqwest/), for example, works for making HTTP requests in both settings.
-2. Use different libraries on the server and the client, and gate them using the `#[cfg]` macro. ([Click here for an example](https://github.com/leptos-rs/leptos/blob/main/examples/hackernews/src/api.rs).)
-3. Wrap client-only code in `Effect::new`. Because effects only run on the client, this can be an effective way to access browser APIs that are not needed for initial rendering.
+1. **只使用可以同时运行在服务器和客户端上的库**。例如，[`reqwest`](https://docs.rs/reqwest/latest/reqwest/) 可以在这两种环境下发起 HTTP 请求。
+2. **在服务器和客户端使用不同的库**，并使用 `#[cfg]` 宏进行区分。（[点击此处查看示例](https://github.com/leptos-rs/leptos/blob/main/examples/hackernews/src/api.rs)。）
+3. **将仅客户端代码包装在 `Effect::new` 中**。因为 Effects 只会在客户端运行，这是一种访问浏览器 API（且这些 API 在初始渲染时不需要）的有效方式。
 
-For example, say that I want to store something in the browser’s `localStorage` whenever a signal changes.
+例如，如果我想在信号变化时将某些内容存储到浏览器的 `localStorage` 中：
 
 ```rust
 #[component]
@@ -218,9 +222,9 @@ pub fn App() -> impl IntoView {
 }
 ```
 
-This panics because I can’t access `LocalStorage` during server rendering.
+这段代码会 panic，因为在服务器渲染期间无法访问 `LocalStorage`。
 
-But if I wrap it in an effect...
+但如果我将其包装在一个 Effect 中：
 
 ```rust
 #[component]
@@ -233,14 +237,16 @@ pub fn App() -> impl IntoView {
 }
 ```
 
-It’s fine! This will render appropriately on the server, ignoring the client-only code, and then access the storage and log a message on the browser.
+这样就没问题了！这段代码会在服务器上正确渲染，忽略仅客户端的代码，然后在浏览器中访问存储并打印日志消息。
 
-### Not all server code can run on the client
+---
 
-WebAssembly running in the browser is a pretty limited environment. You don’t have access to a file-system or to many of the other things the standard library may be used to having. Not every crate can even be compiled to WASM, let alone run in a WASM environment.
+### 并非所有服务器代码都能在客户端运行
 
-In particular, you’ll sometimes see errors about the crate `mio` or missing things from `core`. This is generally a sign that you are trying to compile something to WASM that can’t be compiled to WASM. If you’re adding server-only dependencies, you’ll want to mark them `optional = true` in your `Cargo.toml` and then enable them in the `ssr` feature definition. (Check out one of the template `Cargo.toml` files to see more details.)
+运行在浏览器中的 WebAssembly 是一个非常受限的环境。你无法访问文件系统或许多标准库可能会用到的功能。并非所有的 crate 都能被编译为 WASM，更不用说在 WASM 环境中运行了。
 
-You can use `create_effect` to specify that something should only run on the client, and not in the server. Is there a way to specify that something should run only on the server, and not the client?
+尤其是，有时你会看到关于 `mio` crate 或缺少 `core` 中某些内容的错误。这通常表明你尝试将某些无法编译为 WASM 的代码编译成 WASM。如果你正在添加仅服务器使用的依赖，请在 `Cargo.toml` 中将它们标记为 `optional = true`，然后在 `ssr` 功能定义中启用它们。（可以查看模板的 `Cargo.toml` 文件获取更多详情。）
 
-In fact, there is. The next chapter will cover the topic of server functions in some detail. (In the meantime, you can check out their docs [here](https://docs.rs/leptos/latest/leptos/attr.server.html).)
+你可以使用 `create_effect` 来指定某些内容只在客户端运行，而不在服务器上运行。那么，有没有办法指定某些内容只在服务器上运行，而不在客户端运行呢？
+
+事实上，有办法。下一章将详细介绍服务器函数的主题。（同时，你也可以查看它们的[文档](https://docs.rs/leptos/latest/leptos/attr.server.html)。）

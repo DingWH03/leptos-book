@@ -1,17 +1,17 @@
-# Optimizing WASM Binary Size
+# 优化 WASM 二进制文件大小
 
-One of the primary downsides of deploying a Rust/WebAssembly frontend app is that splitting a WASM file into smaller chunks to be dynamically loaded is significantly more difficult than splitting a JavaScript bundle. There have been experiments like [`wasm-split`](https://emscripten.org/docs/optimizing/Module-Splitting.html) in the Emscripten ecosystem but at present there’s no way to split and dynamically load a Rust/`wasm-bindgen` binary. This means that the whole WASM binary needs to be loaded before your app becomes interactive. Because the WASM format is designed for streaming compilation, WASM files are much faster to compile per kilobyte than JavaScript files. (For a deeper look, you can [read this great article from the Mozilla team](https://hacks.mozilla.org/2018/01/making-webassembly-even-faster-firefoxs-new-streaming-and-tiering-compiler/) on streaming WASM compilation.)
+部署 Rust/WebAssembly 前端应用的主要缺点之一是将一个 WASM 文件拆分成可动态加载的小块比拆分 JavaScript 包更困难。虽然 Emscripten 生态中有类似 [`wasm-split`](https://emscripten.org/docs/optimizing/Module-Splitting.html) 的实验，但目前还没有办法拆分和动态加载 Rust/`wasm-bindgen` 二进制文件。这意味着整个 WASM 二进制文件需要在应用变为交互式之前加载完毕。由于 WASM 格式设计为流式编译，WASM 文件的每千字节编译速度比 JavaScript 文件快得多。（更多详细内容，请[参考 Mozilla 团队的一篇文章](https://hacks.mozilla.org/2018/01/making-webassembly-even-faster-firefoxs-new-streaming-and-tiering-compiler/)，讲述了 WASM 流式编译的原理。）
 
-Still, it’s important to ship the smallest WASM binary to users that you can, as it will reduce their network usage and make your app interactive as quickly as possible.
+尽管如此，尽可能向用户提供最小的 WASM 二进制文件仍然很重要，这可以减少网络使用并让应用尽快变为可交互状态。
 
-So what are some practical steps?
+那么，有哪些实用的优化步骤呢？
 
-## Things to Do
+## 优化措施
 
-1. Make sure you’re looking at a release build. (Debug builds are much, much larger.)
-2. Add a release profile for WASM that optimizes for size, not speed.
+1. **确保使用 release 构建。**（Debug 构建会大得多。）
+2. **为 WASM 添加一个优化大小而非速度的 release 配置。**
 
-For a `cargo-leptos` project, for example, you can add this to your `Cargo.toml`:
+对于一个 `cargo-leptos` 项目，可以在 `Cargo.toml` 中添加以下内容：
 
 ```toml
 [profile.wasm-release]
@@ -27,13 +27,14 @@ codegen-units = 1
 lib-profile-release = "wasm-release"
 ```
 
-This will hyper-optimize the WASM for your release build for size, while keeping your server build optimized for speed. (For a pure client-rendered app without server considerations, just use the `[profile.wasm-release]` block as your `[profile.release]`.)
+这会让 WASM 的 release 构建针对大小进行高度优化，同时保持服务器端构建针对速度优化。（对于纯客户端渲染的应用，可以直接将 `[profile.wasm-release]` 配置用作 `[profile.release]`。）
 
-3. Always serve compressed WASM in production. WASM tends to compress very well, typically shrinking to less than 50% its uncompressed size, and it’s trivial to enable compression for static files being served from Actix or Axum.
+3. **在生产环境中始终使用压缩的 WASM 文件。**  
+WASM 通常压缩效果很好，未压缩大小的 50% 以下，使用 Actix 或 Axum 提供静态文件时可以轻松启用压缩。
 
-4. If you’re using nightly Rust, you can rebuild the standard library with this same profile rather than the prebuilt standard library that’s distributed with the `wasm32-unknown-unknown` target.
+4. **如果使用 nightly Rust，可以用相同的配置重建标准库**，而不是使用 `wasm32-unknown-unknown` 目标提供的预构建标准库。
 
-To do this, create a file in your project at `.cargo/config.toml`
+在项目中创建 `.cargo/config.toml` 文件：
 
 ```toml
 [unstable]
@@ -41,32 +42,35 @@ build-std = ["std", "panic_abort", "core", "alloc"]
 build-std-features = ["panic_immediate_abort"]
 ```
 
-Note that if you're using this with SSR too, the same Cargo profile will be applied. You'll need to explicitly specify your target:
+注意：如果同时用于 SSR，这相同的 Cargo 配置也会被应用到服务器。需要明确指定目标：
+
 ```toml
 [build]
-target = "x86_64-unknown-linux-gnu" # or whatever
+target = "x86_64-unknown-linux-gnu" # 或其他目标
 ```
 
-Also note that in some cases, the cfg feature `has_std` will not be set, which may cause build errors with some dependencies which check for `has_std`. You may fix any build errors due to this by adding:
+如果出现由于未设置 `has_std` 导致的构建错误，可以通过以下方式修复：
+
 ```toml
 [build]
 rustflags = ["--cfg=has_std"]
 ```
 
-And you'll need to add `panic = "abort"` to `[profile.release]` in `Cargo.toml`. Note that this applies the same `build-std` and panic settings to your server binary, which may not be desirable. Some further exploration is probably needed here.
+此外，需要在 `Cargo.toml` 的 `[profile.release]` 中添加 `panic = "abort"`。
 
-5. One of the sources of binary size in WASM binaries can be `serde` serialization/deserialization code. Leptos uses `serde` by default to serialize and deserialize resources created with `create_resource`. You might try experimenting with the `miniserde` and `serde-lite` features, which allow you to use those crates for serialization and deserialization instead; each only implements a subset of `serde`’s functionality, but typically optimizes for size over speed.
+5. **序列化/反序列化代码会增加二进制大小。**  
+Leptos 默认使用 `serde` 处理资源的序列化和反序列化。可以尝试使用 `miniserde` 或 `serde-lite`，这些库实现了 `serde` 的子集功能，通常更注重优化大小而非速度。
 
-## Things to Avoid
+## 避免的情况
 
-There are certain crates that tend to inflate binary sizes. For example, the `regex` crate with its default features adds about 500kb to a WASM binary (largely because it has to pull in Unicode table data!). In a size-conscious setting, you might consider avoiding regexes in general, or even dropping down and calling browser APIs to use the built-in regex engine instead. (This is what `leptos_router` does on the few occasions it needs a regular expression.)
+某些 crates 会显著增加二进制文件大小。例如，`regex` crate 默认功能会增加大约 500kb（主要因为需要引入 Unicode 表数据）。在对大小敏感的场景下，可以考虑避免使用正则表达式，或者直接调用浏览器 API 使用内置正则引擎。（例如，`leptos_router` 在需要正则时就是这样做的。）
 
-In general, Rust’s commitment to runtime performance is sometimes at odds with a commitment to a small binary. For example, Rust monomorphizes generic functions, meaning it creates a distinct copy of the function for each generic type it’s called with. This is significantly faster than dynamic dispatch, but increases binary size. Leptos tries to balance runtime performance with binary size considerations pretty carefully; but you might find that writing code that uses many generics tends to increase binary size. For example, if you have a generic component with a lot of code in its body and call it with four different types, remember that the compiler could include four copies of that same code. Refactoring to use a concrete inner function or helper can often maintain performance and ergonomics while reducing binary size.
+Rust 对运行时性能的承诺有时会与优化二进制大小相冲突。例如，Rust 会对泛型函数进行单态化，为每种调用类型创建单独的函数版本。这比动态调度更快，但会增加二进制文件大小。Leptos 在运行时性能与二进制大小之间进行了平衡；但如果你在代码中大量使用泛型，可能会增加二进制大小。例如，一个泛型组件体内包含大量代码，且被四种不同类型调用，编译器可能会包含这段代码的四个副本。可以通过重构为具体的内部函数或辅助函数，既保持性能又减少二进制大小。
 
-## A Final Thought
+## 最后一点思考
 
-Remember that in a server-rendered app, JS bundle size/WASM binary size affects only _one_ thing: time to interactivity on the first load. This is very important to a good user experience: nobody wants to click a button three times and have it do nothing because the interactive code is still loading — but it's not the only important measure.
+请记住，在服务器渲染的应用中，JS 包大小或 WASM 二进制文件大小只会影响**一个方面**：首次加载的交互时间。这对用户体验非常重要：没有人希望点击按钮三次却没反应，因为交互代码仍在加载——但这不是唯一重要的指标。
 
-It’s especially worth remembering that streaming in a single WASM binary means all subsequent navigations are nearly instantaneous, depending only on any additional data loading. Precisely because your WASM binary is _not_ bundle split, navigating to a new route does not require loading additional JS/WASM, as it does in nearly every JavaScript framework. Is this copium? Maybe. Or maybe it’s just an honest trade-off between the two approaches!
+值得注意的是，流式加载一个完整的 WASM 二进制文件意味着后续导航几乎是即时的，仅取决于额外数据的加载。正因为 WASM 二进制文件**不是**按包拆分的，导航到新路由时不需要像 JavaScript 框架那样加载额外的 JS/WASM。这是权衡两种方法的真实体现。
 
-Always take the opportunity to optimize the low-hanging fruit in your application. And always test your app under real circumstances with real user network speeds and devices before making any heroic efforts.
+始终优化应用中的“低垂果实”，同时在真实用户的网络速度和设备条件下测试应用效果，在采取复杂优化之前确保实际效果良好。

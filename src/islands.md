@@ -1,98 +1,98 @@
-# Guide: Islands
+# 指南：Islands（岛屿架构）
 
-Leptos 0.5 introduced the new `islands` feature. This guide will walk through the islands feature and core concepts, while implementing a demo app using the islands architecture.
+Leptos 0.5 引入了新的 `islands` 功能。本指南将带你了解岛屿架构的核心概念，并通过一个示例应用来实现这一架构。
 
-## The Islands Architecture
+## 岛屿架构（Islands Architecture）
 
-The dominant JavaScript frontend frameworks (React, Vue, Svelte, Solid, Angular) all originated as frameworks for building client-rendered single-page apps (SPAs). The initial page load is rendered to HTML, then hydrated, and subsequent navigations are handled directly in the client. (Hence “single page”: everything happens from a single page load from the server, even if there is client-side routing later.) Each of these frameworks later added server-side rendering to improve initial load times, SEO, and user experience.
+主流的 JavaScript 前端框架（如 React、Vue、Svelte、Solid、Angular）最初都是为构建客户端渲染的单页应用（SPA）而设计的。初始页面加载时渲染为 HTML，随后进行“hydration”（状态复原），之后的导航全部由客户端处理。（因此称为“单页”：所有内容都基于从服务器加载的一页，即使后来有客户端路由。）这些框架后来都增加了服务器端渲染（SSR），以改善初始加载时间、SEO 和用户体验。
 
-This means that by default, the entire app is interactive. It also means that the entire app has to be shipped to the client as JavaScript in order to be hydrated. Leptos has followed this same pattern.
+这意味着默认情况下，整个应用都是交互式的。同时也意味着整个应用必须作为 JavaScript 文件发送到客户端以进行 hydration。Leptos 也遵循了这一模式。
 
-> You can read more in the chapters on [server-side rendering](./ssr/22_life_cycle.md).
+> 你可以在[服务器端渲染章节](./ssr/22_life_cycle.md)中了解更多相关内容。
 
-But it’s also possible to work in the opposite direction. Rather than taking an entirely-interactive app, rendering it to HTML on the server, and then hydrating it in the browser, you can begin with a plain HTML page and add small areas of interactivity. This is the traditional format for any website or app before the 2010s: your browser makes a series of requests to the server and returns the HTML for each new page in response. After the rise of “single-page apps” (SPA), this approach has sometimes become known as a “multi-page app” (MPA) by comparison.
+但我们也可以反过来工作。与其构建一个完全交互式的应用、在服务器上渲染为 HTML 并在浏览器中进行 hydration，不如从一个纯 HTML 页面开始，在页面中添加小块交互区域。这是 2010 年之前任何网站或应用的传统形式：浏览器向服务器发出一系列请求，并为每个新页面返回 HTML。在“单页应用”（SPA）兴起后，这种方法有时被称为“多页应用”（MPA）。
 
-The phrase “islands architecture” has emerged recently to describe the approach of beginning with a “sea” of server-rendered HTML pages, and adding “islands” of interactivity throughout the page.
+近年来，“岛屿架构”（Islands Architecture）这一术语被用来描述从“服务器渲染的 HTML 页面海洋”开始，并在页面中添加“交互岛屿”的方法。
 
-> ### Additional Reading
+> ### 推荐阅读
 >
-> The rest of this guide will look at how to use islands with Leptos. For more background on the approach in general, check out some of the articles below:
+> 本指南接下来的部分将介绍如何在 Leptos 中使用岛屿功能。如果你想了解这一方法的更多背景信息，可以参考以下文章：
 >
-> - Jason Miller, [“Islands Architecture”](https://jasonformat.com/islands-architecture/), Jason Miller
-> - Ryan Carniato, [“Islands & Server Components & Resumability, Oh My!”](https://dev.to/this-is-learning/islands-server-components-resumability-oh-my-319d)
-> - [“Islands Architectures”](https://www.patterns.dev/posts/islands-architecture) on patterns.dev
+> - Jason Miller，[《Islands Architecture》](https://jasonformat.com/islands-architecture/)，Jason Miller
+> - Ryan Carniato，[《Islands & Server Components & Resumability, Oh My!》](https://dev.to/this-is-learning/islands-server-components-resumability-oh-my-319d)
+> - patterns.dev 上的[《Islands Architectures》](https://www.patterns.dev/posts/islands-architecture)
 > - [Astro Islands](https://docs.astro.build/en/concepts/islands/)
 
-## Activating Islands Mode
+## 激活 Islands 模式
 
-Let’s start with a fresh `cargo-leptos` app:
+让我们从一个新的 `cargo-leptos` 应用开始：
 
 ```bash
 cargo leptos new --git leptos-rs/start-axum
 ```
 
-> There should be no real differences between Actix and Axum in this example.
+> 在这个示例中，Actix 和 Axum 应该没有本质区别。
 
-I’m just going to run
+接下来我会运行：
 
 ```bash
 cargo leptos build
 ```
 
-in the background while I fire up my editor and keep writing.
+然后打开编辑器继续修改代码。
 
-The first thing I’ll do is to add the `islands` feature in my `Cargo.toml`. I only need to add this to the `leptos` crate.
+首先，我会在 `Cargo.toml` 文件中为 `leptos` crate 添加 `islands` 功能：
 
 ```toml
 leptos = { version = "0.7", features = ["islands"] }
 ```
 
-Next I’m going to modify the `hydrate` function exported from `src/lib.rs`. I’m going to remove the line that calls `leptos::mount::mount_to_body(App)` and replace it with
+接下来，我会修改 `src/lib.rs` 中导出的 `hydrate` 函数。我会移除调用 `leptos::mount::mount_to_body(App)` 的代码，并将其替换为：
 
 ```rust
 leptos::mount::hydrate_islands();
 ```
 
-Rather than running the whole application and hydrating the view that it creates, this will hydrate each individual island, in order.
+这样，系统不会运行整个应用并对其视图进行 hydration，而是按顺序对每个独立的 island 进行 hydration。
 
-In `app.rs`, in the `shell` functions, we’ll also need to add `islands=true` to the `HydrationScripts` component:
+在 `app.rs` 文件中，我们还需要在 `shell` 函数中的 `HydrationScripts` 组件添加 `islands=true`：
 
 ```rust
 <HydrationScripts options islands=true/>
 ```
 
-Okay, now fire up your `cargo leptos watch` and go to [`http://localhost:3000`](http://localhost:3000) (or wherever).
+现在，启动 `cargo leptos watch` 并访问 [`http://localhost:3000`](http://localhost:3000)（或其他地址）。
 
-Click the button, and...
+点击按钮，结果是……
 
-Nothing happens!
+什么也没发生！
 
-Perfect.
+完美。
 
 ```admonish note
-The starter templates include `use app::*;` in their `hydrate()` function definitions. Once you've switched over to islands mode, you are no longer using the imported main `App` function, so you might think you can delete this. (And in fact, Rust lint tools might issue warnings if you don't!)
+初始模板在 `hydrate()` 函数定义中包含了 `use app::*;`。切换到 Islands 模式后，你将不再使用导入的主 `App` 函数，因此你可能认为可以删除这一行代码。（事实上，如果你不删除，Rust 的 lint 工具可能会发出警告！）
 
-However, this can cause issues if you are using a workspace setup. We use `wasm-bindgen` to independently export an entrypoint for each function. In my experience, if you are using a workspace setup and nothing in your `frontend` crate actually uses the `app` crate, those bindings will not be generated correctly. [See this discussion for more](https://github.com/leptos-rs/leptos/issues/2083#issuecomment-1868053733).
+然而，如果你在使用 workspace 设置，这可能会引发问题。我们使用 `wasm-bindgen` 为每个函数单独导出一个入口点。根据我的经验，如果你的 `frontend` crate 中没有实际使用 `app` crate 的任何内容，那么这些绑定可能不会正确生成。[更多讨论请见这里](https://github.com/leptos-rs/leptos/issues/2083#issuecomment-1868053733)。
 ```
 
-## Using Islands
+## 使用 Islands
 
-Nothing happens because we’ve just totally inverted the mental model of our app. Rather than being interactive by default and hydrating everything, the app is now plain HTML by default, and we need to opt into interactivity.
+目前什么都没发生，因为我们完全颠覆了应用的思维模型。现在，应用默认是静态的 HTML，而不是默认交互式并对所有内容进行 hydration。我们需要主动选择哪些部分实现交互。
 
-This has a big effect on WASM binary sizes: if I compile in release mode, this app is a measly 24kb of WASM (uncompressed), compared to 274kb in non-islands mode. (274kb is quite large for a “Hello, world!” It’s really just all the code related to client-side routing, which isn’t being used in the demo.)
+这种模式对 WASM 二进制文件大小有很大影响：如果以 release 模式编译，这个应用的 WASM 文件只有 24kb（未压缩），而非 Islands 模式下是 274kb。（274kb 对于“Hello, world!”来说相当大，主要是因为包含了与客户端路由相关的代码，而这些代码在这个示例中并未使用。）
 
-When we click the button, nothing happens, because our whole page is static.
+当点击按钮时，什么都没发生，因为整个页面是静态的。
 
-So how do we make something happen?
+那么，我们如何让它变得交互式呢？
 
-Let’s turn the `HomePage` component into an island!
+让我们将 `HomePage` 组件转换为一个 Island！
 
-Here was the non-interactive version:
+以下是非交互式版本：
 
 ```rust
 #[component]
 fn HomePage() -> impl IntoView {
-    // Creates a reactive value to update the button
+    // 创建一个反应式值以更新按钮
     let count = RwSignal::new(0);
     let on_click = move |_| *count.write() += 1;
 
@@ -103,12 +103,12 @@ fn HomePage() -> impl IntoView {
 }
 ```
 
-Here’s the interactive version:
+以下是交互式版本：
 
 ```rust
 #[island]
 fn HomePage() -> impl IntoView {
-    // Creates a reactive value to update the button
+    // 创建一个反应式值以更新按钮
     let count = RwSignal::new(0);
     let on_click = move |_| *count.write() += 1;
 
@@ -119,11 +119,11 @@ fn HomePage() -> impl IntoView {
 }
 ```
 
-Now when I click the button, it works!
+现在，当我点击按钮时，它可以正常工作了！
 
-The `#[island]` macro works exactly like the `#[component]` macro, except that in islands mode, it designates this as an interactive island. If we check the binary size again, this is 166kb uncompressed in release mode; much larger than the 24kb totally static version, but much smaller than the 355kb fully-hydrated version.
+`#[island]` 宏与 `#[component]` 宏的工作方式完全相同，但在 Islands 模式下，它将这个组件标记为交互式 Island。如果我们再次检查二进制大小，结果是 166kb（release 模式下未压缩），比完全静态版本的 24kb 大得多，但比完全 hydration 的 355kb 小得多。
 
-If you open up the source for the page now, you’ll see that your `HomePage` island has been rendered as a special `<leptos-island>` HTML element which specifies which component should be used to hydrate it:
+如果你现在查看页面的源代码，会发现你的 `HomePage` Island 被渲染为一个特殊的 `<leptos-island>` HTML 元素，并指定了用于 hydration 的组件：
 
 ```html
 <leptos-island data-component="HomePage_7432294943247405892">
@@ -135,11 +135,11 @@ If you open up the source for the page now, you’ll see that your `HomePage` is
 </leptos-island>
 ```
 
-Only code for what's inside this `<leptos-island>` is compiled to WASM, only only that code runs when hydrating.
+只有这个 `<leptos-island>` 内的代码会被编译为 WASM，并且仅在 hydration 时运行这些代码。
 
-## Using Islands Effectively
+## 高效使用 Islands
 
-Remember that _only_ code within an `#[island]` needs to be compiled to WASM and shipped to the browser. This means that islands should be as small and specific as possible. My `HomePage`, for example, would be better broken apart into a regular component and an island:
+请记住，**只有**标记为 `#[island]` 的代码需要被编译为 WASM 并发送到浏览器。这意味着 Islands 应尽可能小而具体。例如，我的 `HomePage` 会更好地被拆分为一个普通组件和一个 Island：
 
 ```rust
 #[component]
@@ -152,7 +152,7 @@ fn HomePage() -> impl IntoView {
 
 #[island]
 fn Counter() -> impl IntoView {
-    // Creates a reactive value to update the button
+    // 创建一个反应式值以更新按钮
     let (count, set_count) = signal(0);
     let on_click = move |_| *set_count.write() += 1;
 
@@ -162,38 +162,38 @@ fn Counter() -> impl IntoView {
 }
 ```
 
-Now the `<h1>` doesn’t need to be included in the client bundle, or hydrated. This seems like a silly distinction now; but note that you can now add as much inert HTML content as you want to the `HomePage` itself, and the WASM binary size will remain exactly the same.
+现在，`<h1>` 不需要包含在客户端包中，也不需要被 hydration。这看起来可能是一个微不足道的优化，但请注意，你现在可以向 `HomePage` 添加任意多的静态 HTML 内容，而 WASM 二进制文件的大小完全不会增加。
 
-In regular hydration mode, your WASM binary size grows as a function of the size/complexity of your app. In islands mode, your WASM binary grows as a function of the amount of interactivity in your app. You can add as much non-interactive content as you want, outside islands, and it will not increase that binary size.
+在常规的 hydration 模式下，WASM 二进制大小随着应用的规模和复杂性增长而增长。而在 Islands 模式下，WASM 二进制大小则与应用中交互部分的数量成正比。你可以在 Islands 之外添加任意多的非交互内容，它不会增加二进制文件大小。
 
-## Unlocking Superpowers
+## 解锁超级能力
 
-So, this 50% reduction in WASM binary size is nice. But really, what’s the point?
+将 WASM 二进制文件大小减少 50% 当然很好。但真正的意义是什么呢？
 
-The point comes when you combine two key facts:
+意义在于结合以下两点：
 
-1. Code inside `#[component]` functions now _only_ runs on the server, unless you use it in an island.\*
-2. Children and props can be passed from the server to islands, without being included in the WASM binary.
+1. `#[component]` 函数内部的代码现在**仅**在服务器上运行，除非你在 Island 中使用它。\*
+2. 子节点和 props 可以从服务器传递到 Islands，而无需包含在 WASM 二进制文件中。
 
-This means you can run server-only code directly in the body of a component, and pass it directly into the children. Certain tasks that take a complex blend of server functions and Suspense in fully-hydrated apps can be done inline in islands.
+这意味着你可以直接在组件的主体中运行仅限服务器的代码，并将结果直接传递给子组件。在完全 hydration 的应用中需要复杂的服务器函数和 `Suspense` 的任务，现在可以直接在 Islands 中完成。
 
-> \* This “unless you use it in an island” is important. It is _not_ the case that `#[component]` components only run on the server. Rather, they are “shared components” that are only compiled into the WASM binary if they’re used in the body of an `#[island]`. But if you don’t use them in an island, they won’t run in the browser.
+> \* 这里的“除非你在 Island 中使用它”很重要。这并不意味着 `#[component]` 组件只在服务器上运行。实际上，它们是“共享组件”，只有在 Island 的主体中使用时才会被编译进 WASM 二进制文件。但如果你不在 Island 中使用它们，它们不会在浏览器中运行。
 
-We’re going to rely on a third fact in the rest of this demo:
+在本示例的剩余部分，我们还将依赖以下事实：
 
-3. Context can be passed between otherwise-independent islands.
+3. **上下文可以在原本独立的 Islands 之间传递。**
 
-So, instead of our counter demo, let’s make something a little more fun: a tabbed interface that reads data from files on the server.
+因此，抛开计数器示例，我们来实现一个更有趣的东西：一个从服务器文件读取数据的标签式界面。
 
-## Passing Server Children to Islands
+## 将服务器子节点传递给 Islands
 
-One of the most powerful things about islands is that you can pass server-rendered children into an island, without the island needing to know anything about them. Islands hydrate their own content, but not children that are passed to them.
+Islands 的一个强大之处在于，你可以将服务器渲染的子节点传递给一个 Island，而无需该 Island 了解这些子节点的任何信息。Islands 会对自己的内容进行 hydration，但不会对传递给它的子节点进行 hydration。
 
-As Dan Abramov of React put it (in the very similar context of RSCs), islands aren’t really islands: they’re donuts. You can pass server-only content directly into the “donut hole,” as it were, allowing you to create tiny atolls of interactivity, surrounded on _both_ sides by the sea of inert server HTML.
+正如 React 的 Dan Abramov 在类似的 React Server Components (RSCs) 场景中所说，Islands 其实并不是孤立的“岛屿”，它们更像是“甜甜圈”：你可以将仅限服务器的内容直接传递到“甜甜圈的中心洞”，从而创建交互的“小环礁”，周围被一片“静态服务器 HTML 的海洋”包围。
 
-> In the demo code included below, I added some styles to show all server content as a light-blue “sea,” and all islands as light-green “land.” Hopefully that will help picture what I’m talking about!
+> 在下面的示例代码中，我添加了一些样式，将所有服务器内容显示为浅蓝色“海洋”，而 Islands 显示为浅绿色“陆地”。希望这能帮助你更直观地理解。
 
-To continue with the demo: I’m going to create a `Tabs` component. Switching between tabs will require some interactivity, so of course this will be an island. Let’s start simple for now:
+继续我们的示例：我将创建一个 `Tabs` 组件。切换选项卡需要一些交互性，因此这当然会是一个 Island。让我们从一个简单的版本开始：
 
 ```rust
 #[island]
@@ -210,7 +210,7 @@ fn Tabs(labels: Vec<String>) -> impl IntoView {
 }
 ```
 
-Oops. This gives me an error
+哎呀，这会报错：
 
 ```
 error[E0463]: can't find crate for `serde`
@@ -220,16 +220,16 @@ error[E0463]: can't find crate for `serde`
    | ^^^^^^^^^ can't find crate
 ```
 
-Easy fix: let’s `cargo add serde --features=derive`. The `#[island]` macro wants to pull in `serde` here because it needs to serialize and deserialize the `labels` prop.
+这很好修复：运行 `cargo add serde --features=derive`。`#[island]` 宏需要引入 `serde`，因为它需要对 `labels` prop 进行序列化和反序列化。
 
-Now let’s update the `HomePage` to use `Tabs`.
+现在更新 `HomePage` 以使用 `Tabs`：
 
 ```rust
 #[component]
 fn HomePage() -> impl IntoView {
-	// these are the files we’re going to read
+	// 我们将读取的文件
     let files = ["a.txt", "b.txt", "c.txt"];
-	// the tab labels will just be the file names
+	// 标签的名字就是文件名
 	let labels = files.iter().copied().map(Into::into).collect();
     view! {
         <h1>"Welcome to Leptos!"</h1>
@@ -239,7 +239,7 @@ fn HomePage() -> impl IntoView {
 }
 ```
 
-If you take a look in the DOM inspector, you’ll see the island is now something like
+如果你查看 DOM 检查器，你会发现 Island 现在是这样的：
 
 ```html
 <leptos-island
@@ -255,9 +255,9 @@ If you take a look in the DOM inspector, you’ll see the island is now somethin
 </leptos-island>
 ```
 
-Our `labels` prop is getting serialized to JSON and stored in an HTML attribute so it can be used to hydrate the island.
+我们的 `labels` prop 被序列化为 JSON 并存储在 HTML 属性中，以便用来对 Island 进行 hydration。
 
-Now let’s add some tabs. For the moment, a `Tab` island will be really simple:
+现在让我们添加一些选项卡。此时，一个 `Tab` Island 非常简单：
 
 ```rust
 #[island]
@@ -268,9 +268,9 @@ fn Tab(index: usize, children: Children) -> impl IntoView {
 }
 ```
 
-Each tab, for now will just be a `<div>` wrapping its children.
+目前，每个选项卡只是一个 `<div>` 包裹着它的子节点。
 
-Our `Tabs` component will also get some children: for now, let’s just show them all.
+`Tabs` 组件现在也会接收一些子节点：目前我们只是简单地显示它们。
 
 ```rust
 #[island]
@@ -288,7 +288,7 @@ fn Tabs(labels: Vec<String>, children: Children) -> impl IntoView {
 }
 ```
 
-Okay, now let’s go back into the `HomePage`. We’re going to create the list of tabs to put into our tab box.
+现在回到 `HomePage`，我们将创建选项卡列表并放入 `Tabs` 中。
 
 ```rust
 #[component]
@@ -321,27 +321,27 @@ fn HomePage() -> impl IntoView {
 }
 ```
 
-Uh... What?
+嗯……等等？
 
-If you’re used to using Leptos, you know that you just can’t do this. All code in the body of components has to run on the server (to be rendered to HTML) and in the browser (to hydrate), so you can’t just call `std::fs`; it will panic, because there’s no access to the local filesystem (and certainly not to the server filesystem!) in the browser. This would be a security nightmare!
+如果你熟悉 Leptos，你知道这是行不通的。组件主体中的代码必须在服务器上运行（渲染为 HTML）并在浏览器中运行（进行 hydration），因此你不能直接调用 `std::fs`；它会 panic，因为浏览器无法访问本地文件系统（更不用说服务器的文件系统了）。这会成为安全噩梦！
 
-Except... wait. We’re in islands mode. This `HomePage` component _really does_ only run on the server. So we can, in fact, just use ordinary server code like this.
+但是……等等。我们现在使用的是 Islands 模式。这个 `HomePage` 组件**确实**只在服务器上运行。因此，我们实际上可以像这样使用普通的服务器端代码。
 
-> **Is this a dumb example?** Yes! Synchronously reading from three different local files in a `.map()` is not a good choice in real life. The point here is just to demonstrate that this is, definitely, server-only content.
+> **这是不是一个愚蠢的示例？**是的！在 `.map()` 中同步读取三个本地文件在现实场景中并不是一个好选择。这里的重点只是演示这确实是仅限服务器的内容。
 
-Go ahead and create three files in the root of the project called `a.txt`, `b.txt`, and `c.txt`, and fill them in with whatever content you’d like.
+接下来，在项目根目录中创建三个文件：`a.txt`、`b.txt` 和 `c.txt`，并填入一些内容。
 
-Refresh the page and you should see the content in the browser. Edit the files and refresh again; it will be updated.
+刷新页面，你应该会在浏览器中看到这些内容。编辑这些文件并再次刷新，内容会更新。
 
-You can pass server-only content from a `#[component]` into the children of an `#[island]`, without the island needing to know anything about how to access that data or render that content.
+你可以将仅限服务器的内容从 `#[component]` 传递到 `#[island]` 的子节点中，而无需 Island 知道如何访问或渲染这些数据。
 
-**This is really important.** Passing server `children` to islands means that you can keep islands small. Ideally, you don’t want to slap an `#[island]` around a whole chunk of your page. You want to break that chunk out into an interactive piece, which can be an `#[island]`, and a bunch of additional server content that can be passed to that island as `children`, so that the non-interactive subsections of an interactive part of the page can be kept out of the WASM binary.
+**这非常重要。** 将服务器子节点传递给 Islands 意味着你可以保持 Islands 足够小。理想情况下，你不会将整个页面的大块内容都标记为 `#[island]`。你应该将交互部分拆分出来作为 `#[island]`，并将大量额外的服务器内容作为子节点传递给这个 Island，以便将交互区域中的非交互部分排除在 WASM 二进制文件之外。
 
-## Passing Context Between Islands
+## 在 Islands 之间传递上下文
 
-These aren’t really “tabs” yet: they just show every tab, all the time. So let’s add some simple logic to our `Tabs` and `Tab` components.
+目前，这些“选项卡”还不是真正的选项卡：它们总是显示所有内容。因此，让我们为 `Tabs` 和 `Tab` 组件添加一些简单的逻辑。
 
-We’ll modify `Tabs` to create a simple `selected` signal. We provide the read half via context, and set the value of the signal whenever someone clicks one of our buttons.
+我们将修改 `Tabs`，创建一个简单的 `selected` 信号。通过上下文提供 `ReadSignal` 的部分，并在用户点击按钮时设置该信号的值。
 
 ```rust
 #[island]
@@ -358,10 +358,17 @@ fn Tabs(labels: Vec<String>, children: Children) -> impl IntoView {
             </button>
         })
         .collect_view();
-// ...
+    // ...
+    view! {
+        <div style="display: flex; width: 100%; justify-content: space-around;">
+            {buttons}
+        </div>
+        {children()}
+    }
+}
 ```
 
-And let’s modify the `Tab` island to use that context to show or hide itself:
+然后修改 `Tab` Island，使用上下文来决定是否显示自身：
 
 ```rust
 #[island]
@@ -383,38 +390,38 @@ fn Tab(index: usize, children: Children) -> impl IntoView {
 }
 ```
 
-Now the tabs behave exactly as I’d expect. `Tabs` passes the signal via context to each `Tab`, which uses it to determine whether it should be open or not.
+现在，选项卡的行为完全符合预期。`Tabs` 通过上下文将信号传递给每个 `Tab`，`Tab` 根据该信号决定是否显示自身。
 
-> That’s why in `HomePage`, I made `let tabs = move ||` a function, and called it like `{tabs()}`: creating the tabs lazily this way meant that the `Tabs` island would already have provided the `selected` context by the time each `Tab` went looking for it.
+> 这就是为什么在 `HomePage` 中，我将 `let tabs = move ||` 定义为一个函数，并以 `{tabs()}` 的形式调用它：以这种方式延迟创建选项卡，确保在每个 `Tab` 查找上下文时，`Tabs` Island 已经提供了 `selected` 上下文。
 
-Our complete tabs demo is about 200kb uncompressed: not the smallest demo in the world, but still significantly smaller than the “Hello, world” using client side routing that we started with! Just for kicks, I built the same demo without islands mode, using `#[server]` functions and `Suspense`. and it was over 400kb. So again, this was about a 50% savings in binary size. And this app includes quite minimal server-only content: remember that as we add additional server-only components and pages, this 200kb will not grow.
+我们的完整选项卡示例大约是 200kb（未压缩）：虽然不是最小的示例，但仍然显著小于我们最初使用客户端路由的“Hello, world”示例！为了测试，我用非 Islands 模式构建了相同的示例，使用 `#[server]` 函数和 `Suspense`，二进制大小超过了 400kb。因此，再次证明 Islands 模式实现了大约 50% 的二进制大小节省。而且这个应用包含的服务器端内容非常少：请记住，当我们添加额外的服务器端组件和页面时，这 200kb 的大小不会增加。
 
-## Overview
+## 概述
 
-This demo may seem pretty basic. It is. But there are a number of immediate takeaways:
+这个示例看起来可能很基础，确实如此。但它带来了几个显而易见的收获：
 
-- **50% WASM binary size reduction**, which means measurable improvements in time to interactivity and initial load times for clients.
-- **Reduced data serialization costs.** Creating a resource and reading it on the client means you need to serialize the data, so it can be used for hydration. If you’ve also read that data to create HTML in a `Suspense`, you end up with “double data,” i.e., the same exact data is both rendered to HTML and serialized as JSON, increasing the size of responses, and therefore slowing them down.
-- **Easily use server-only APIs** inside a `#[component]` as if it were a normal, native Rust function running on the server—which, in islands mode, it is!
-- **Reduced `#[server]`/`create_resource`/`Suspense` boilerplate** for loading server data.
+- **50% 的 WASM 二进制大小减少**，这意味着客户端的交互时间和初始加载时间得到了显著改善。
+- **降低数据序列化成本**。在客户端创建一个资源并读取它意味着需要序列化数据以用于 hydration。如果你还读取了该数据以在 `Suspense` 中生成 HTML，那么会产生“双重数据”，即相同的数据既被渲染为 HTML，又被序列化为 JSON。这会增加响应大小，从而减慢加载速度。
+- **轻松使用服务器专属 API**。在 `#[component]` 中使用服务器端 API，就像运行在服务器上的普通 Rust 函数一样——因为在 Islands 模式中，它确实如此！
+- **减少 `#[server]`/`create_resource`/`Suspense` 样板代码**，用于加载服务器数据。
 
-## Future Exploration
+## 未来探索
 
-The `islands` feature reflects work at the cutting edge of what frontend web frameworks are exploring right now. As it stands, our islands approach is very similar to Astro (before its recent View Transitions support): it allows you to build a traditional server-rendered, multi-page app and pretty seamlessly integrate islands of interactivity.
+`islands` 功能反映了当前前端 Web 框架正在探索的最前沿工作。就目前来看，我们的 Islands 方法与 Astro（在最近支持 View Transitions 之前）非常相似：它允许你构建一个传统的服务器渲染多页应用，并几乎无缝地集成交互的 Islands。
 
-There are some small improvements that will be easy to add. For example, we can do something very much like Astro's View Transitions approach:
+以下是一些可以轻松添加的小改进，例如，我们可以引入类似 Astro 的 View Transitions 方法：
 
-- add client-side routing for islands apps by fetching subsequent navigations from the server and replacing the HTML document with the new one
-- add animated transitions between the old and new document using the View Transitions API
-- support explicit persistent islands, i.e., islands that you can mark with unique IDs (something like `persist:searchbar` on the component in the view), which can be copied over from the old to the new document without losing their current state
+- 为 Islands 应用添加客户端路由，通过从服务器获取后续导航并用新 HTML 文档替换旧文档。
+- 使用 View Transitions API 在新旧文档之间添加动画过渡。
+- 支持显式的持久 Islands，例如，你可以为 Islands 标记唯一 ID（类似于在视图中的组件上使用 `persist:searchbar`），以便将它们从旧文档复制到新文档，而不会丢失当前状态。
 
-There are other, larger architectural changes that I’m [not sold on yet](https://github.com/leptos-rs/leptos/issues/1830).
+同时，还有一些较大的架构更改，但我目前[还未完全认可](https://github.com/leptos-rs/leptos/issues/1830)。
 
-## Additional Information
+## 附加信息
 
-Check out the [`islands` example](https://github.com/leptos-rs/leptos/blob/main/examples/islands/src/app.rs), [roadmap](https://github.com/leptos-rs/leptos/issues/1830), and [Hackernews demo](https://github.com/leptos-rs/leptos/tree/leptos_0.6/examples/hackernews_islands_axum) for additional discussion.
+更多讨论请参考 [`islands` 示例](https://github.com/leptos-rs/leptos/blob/main/examples/islands/src/app.rs)、[路线图](https://github.com/leptos-rs/leptos/issues/1830)、以及 [Hackernews 示例](https://github.com/leptos-rs/leptos/tree/leptos_0.6/examples/hackernews_islands_axum)。
 
-## Demo Code
+## 示例代码
 
 ```rust
 use leptos::prelude::*;
