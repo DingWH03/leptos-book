@@ -83,7 +83,7 @@ fn FancyMath() -> impl IntoView {
 
 ## 选项 3：创建全局状态存储（Store）
 
-> 部分内容与关于复杂迭代中存储的章节 [此处](../view/04b_iteration.md#option-4-stores) 重叠。由于这两部分都是中级/可选内容，因此一些重复不会有太大影响。
+> 部分内容与关于复杂迭代中存储的章节 [此处](../view/04b_iteration.md#方案-4stores存储) 重叠。由于这两部分都是中级/可选内容，因此一些重复不会有太大影响。
 
 存储是 Leptos 0.7 中提供的新型响应式原语，通过伴随的 `reactive_stores` crate 提供。（目前该 crate 独立发布，以便可以在不影响整个框架版本的情况下继续开发。）
 
