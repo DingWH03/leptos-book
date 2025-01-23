@@ -7,7 +7,7 @@
 开始使用非常简单。只需运行以下命令安装：
 
 ```bash
-cargo install cargo-leptos
+cargo install --locked cargo-leptos
 ```
 
 然后可以通过以下命令创建新项目：
