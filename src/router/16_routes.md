@@ -1,26 +1,26 @@
-# Defining Routes
+# 定义路由
 
-## Getting Started
+## 入门
 
-It’s easy to get started with the router.
+使用路由器非常简单。
 
-First things first, make sure you’ve added the `leptos_router` package to your dependencies. Unlike `leptos`, this does not have separate `csr` and `hydrate` features; it does have an `ssr` feature, intended for use only on the server side, so activate that for your server-side build.
+首先，请确保已将 `leptos_router` 包添加到你的依赖项中。与 `leptos` 不同，该包没有单独的 `csr` 和 `hydrate` 功能；但它确实有一个仅供服务器端使用的 `ssr` 功能，因此请在服务器端构建时激活该功能。
 
-> It’s important that the router is a separate package from `leptos` itself. This means that everything in the router can be defined in user-land code. If you want to create your own router, or use no router, you’re completely free to do that!
+> 路由器是一个独立于 `leptos` 的包，这一点非常重要。这意味着路由器中的所有内容都可以用用户代码定义。如果你想创建自己的路由器，或者根本不使用路由器，完全可以自由地做到这一点！
 
-And import the relevant types from the router, either with something like
+接着从路由器中导入相关类型，例如：
 
 ```rust
 use leptos_router::components::{Router, Route, Routes};
 ```
 
-## Providing the `<Router/>`
+## 提供 `<Router/>`
 
-Routing behavior is provided by the [`<Router/>`](https://docs.rs/leptos_router/latest/leptos_router/components/fn.Router.html) component. This should usually be somewhere near the root of your application, wrapping the rest of the app.
+路由行为是由 [`<Router/>`](https://docs.rs/leptos_router/latest/leptos_router/components/fn.Router.html) 组件提供的。它通常位于应用程序的根部附近，包裹住应用的其余部分。
 
-> You shouldn’t try to use multiple `<Router/>`s in your app. Remember that the router drives global state: if you have multiple routers, which one decides what to do when the URL changes?
+> 不应该在应用中使用多个 `<Router/>`。请记住，路由器驱动全局状态：如果有多个路由器，当 URL 发生变化时，哪个路由器来决定行为？
 
-Let’s start with a simple `<App/>` component using the router:
+以下是一个使用路由器的简单 `<App/>` 组件示例：
 
 ```rust
 use leptos::prelude::*;
@@ -39,14 +39,13 @@ pub fn App() -> impl IntoView {
       </Router>
     }
 }
-
 ```
 
-## Defining `<Routes/>`
+## 定义 `<Routes/>`
 
-The [`<Routes/>`](https://docs.rs/leptos_router/latest/leptos_router/components/fn.Routes.html) component is where you define all the routes to which a user can navigate in your application. Each possible route is defined by a [`<Route/>`](https://docs.rs/leptos_router/latest/leptos_router/components/fn.Route.html) component.
+[`<Routes/>`](https://docs.rs/leptos_router/latest/leptos_router/components/fn.Routes.html) 组件是定义用户在应用程序中可以导航到的所有路由的地方。每个可能的路由由 [`<Route/>`](https://docs.rs/leptos_router/latest/leptos_router/components/fn.Route.html) 组件定义。
 
-You should place the `<Routes/>` component at the location within your app where you want routes to be rendered. Everything outside `<Routes/>` will be present on every page, so you can leave things like a navigation bar or menu outside the `<Routes/>`.
+你应该将 `<Routes/>` 组件放置在应用程序中希望渲染路由的位置。`<Routes/>` 之外的内容会出现在每个页面上，因此像导航栏或菜单这样的内容可以留在 `<Routes/>` 之外。
 
 ```rust
 use leptos::prelude::*;
@@ -60,7 +59,7 @@ pub fn App() -> impl IntoView {
           /* ... */
         </nav>
         <main>
-          // all our routes will appear inside <main>
+          // 所有的路由都会出现在 <main> 中
           <Routes fallback=|| "Not found.">
             /* ... */
           </Routes>
@@ -70,17 +69,17 @@ pub fn App() -> impl IntoView {
 }
 ```
 
-`<Routes/>` should also have a `fallback`, a function that defines what should be shown if no route is matched.
+`<Routes/>` 还应该有一个 `fallback`，即一个函数，当没有路由匹配时定义应该显示的内容。
 
-Individual routes are defined by providing children to `<Routes/>` with the `<Route/>` component. `<Route/>` takes a `path` and a `view`. When the current location matches `path`, the `view` will be created and displayed.
+单个路由是通过为 `<Routes/>` 提供子组件 `<Route/>` 来定义的。`<Route/>` 接受一个 `path` 和一个 `view`。当当前的位置匹配 `path` 时，将创建并显示 `view`。
 
-The `path` is most easily defined using the `path` macro, and can include
+`path` 最简单的定义方式是使用 `path!` 宏，它可以包括：
 
-- a static path (`/users`),
-- dynamic, named parameters beginning with a colon (`/:id`),
-- and/or a wildcard beginning with an asterisk (`/user/*any`)
+- 静态路径（例如：`/users`），
+- 以冒号开头的动态命名参数（例如：`/:id`），
+- 和/或以星号开头的通配符（例如：`/user/*any`）。
 
-The `view` is a function that returns a view. Any component with no props works here, as does a closure that returns some view.
+`view` 是一个返回视图的函数。任何没有属性的组件或返回视图的闭包都可以在这里使用。
 
 ```rust
 <Routes fallback=|| "Not found.">
@@ -91,8 +90,8 @@ The `view` is a function that returns a view. Any component with no props works 
 </Routes>
 ```
 
-> `view` takes a `Fn() -> impl IntoView`. If a component has no props, it can be passed directly into the `view`. In this case, `view=Home` is just a shorthand for `|| view! { <Home/> }`.
+> `view` 接受一个 `Fn() -> impl IntoView`。如果组件没有属性，可以直接传递给 `view`。例如，`view=Home` 是 `|| view! { <Home/> }` 的简写。
 
-Now if you navigate to `/` or to `/users` you’ll get the home page or the `<Users/>`. If you go to `/users/3` or `/blahblah` you’ll get a user profile or your 404 page (`<NotFound/>`). On every navigation, the router determines which `<Route/>` should be matched, and therefore what content should be displayed where the `<Routes/>` component is defined.
+现在，如果你导航到 `/` 或 `/users`，将会看到主页或 `<Users/>`。如果你访问 `/users/3` 或 `/blahblah`，将会显示用户简介或 404 页面 (`<NotFound/>`)。每次导航时，路由器都会决定匹配哪个 `<Route/>`，从而在 `<Routes/>` 组件定义的位置显示相应内容。
 
-Simple enough?
+够简单吧？

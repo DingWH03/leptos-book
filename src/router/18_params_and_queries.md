@@ -1,24 +1,24 @@
-# Params and Queries
+# 参数和查询
 
-Static paths are useful for distinguishing between different pages, but almost every application wants to pass data through the URL at some point.
+静态路径对于区分不同的页面很有用，但几乎每个应用程序都需要通过 URL 传递数据。
 
-There are two ways you can do this:
+有两种方法可以实现：
 
-1. named route **params** like `id` in `/users/:id`
-2. named route **queries** like `q` in `/search?q=Foo`
+1. 使用命名路由**参数**，例如 `/users/:id` 中的 `id`
+2. 使用命名路由**查询**，例如 `/search?q=Foo` 中的 `q`
 
-Because of the way URLs are built, you can access the query from _any_ `<Route/>` view. You can access route params from the `<Route/>` that defines them or any of its nested children.
+由于 URL 的构造方式，你可以从**任何** `<Route/>` 视图访问查询（query）。而对于路由参数（params），你可以从定义它们的 `<Route/>` 或它的任何嵌套子路由中访问。
 
-Accessing params and queries is pretty simple with a couple of hooks:
+通过几个钩子函数，可以很简单地访问参数和查询：
 
-- [`use_query`](https://docs.rs/leptos_router/latest/leptos_router/hooks/fn.use_query.html) or [`use_query_map`](https://docs.rs/leptos_router/latest/leptos_router/hooks/fn.use_query_map.html)
-- [`use_params`](https://docs.rs/leptos_router/latest/leptos_router/hooks/fn.use_params.html) or [`use_params_map`](https://docs.rs/leptos_router/latest/leptos_router/hooks/fn.use_params_map.html)
+- [`use_query`](https://docs.rs/leptos_router/latest/leptos_router/hooks/fn.use_query.html) 或 [`use_query_map`](https://docs.rs/leptos_router/latest/leptos_router/hooks/fn.use_query_map.html)
+- [`use_params`](https://docs.rs/leptos_router/latest/leptos_router/hooks/fn.use_params.html) 或 [`use_params_map`](https://docs.rs/leptos_router/latest/leptos_router/hooks/fn.use_params_map.html)
 
-Each of these comes with a typed option (`use_query` and `use_params`) and an untyped option (`use_query_map` and `use_params_map`).
+这些函数分别提供了类型化选项（`use_query` 和 `use_params`）和非类型化选项（`use_query_map` 和 `use_params_map`）。
 
-The untyped versions hold a simple key-value map. To use the typed versions, derive the [`Params`](https://docs.rs/leptos_router/latest/leptos_router/params/trait.Params.html) trait on a struct.
+非类型化版本会返回一个简单的键值映射。而对于类型化版本，可以在结构体上派生 [`Params`](https://docs.rs/leptos_router/latest/leptos_router/params/trait.Params.html) 特性。
 
-> `Params` is a very lightweight trait to convert a flat key-value map of strings into a struct by applying `FromStr` to each field. Because of the flat structure of route params and URL queries, it’s significantly less flexible than something like `serde`; it also adds much less weight to your binary.
+> `Params` 是一个非常轻量级的特性，用于通过对每个字段应用 `FromStr` 将字符串的扁平键值映射转换为结构体。由于路由参数和 URL 查询的扁平结构，它比类似 `serde` 的工具灵活性低得多，但也大大减少了对二进制文件的负担。
 
 ```rust
 use leptos::Params;
@@ -35,14 +35,13 @@ struct ContactSearch {
 }
 ```
 
-> Note: The `Params` derive macro is located at `leptos_router::params::Params`.
+> 注意：`Params` 派生宏位于 `leptos_router::params::Params`。
 >
-> Using stable, you can only use `Option<T>` in params. If you are using the `nightly` feature,
-> you can use either `T` or `Option<T>`.
+> 如果使用稳定版，你只能在参数中使用 `Option<T>`。如果启用了 `nightly` 特性，你可以使用 `T` 或 `Option<T>`。
 
-Now we can use them in a component. Imagine a URL that has both params and a query, like `/contacts/:id?q=Search`.
+现在可以在组件中使用它们。假设一个同时包含参数和查询的 URL，例如 `/contacts/:id?q=Search`。
 
-The typed versions return `Memo<Result<T, _>>`. It’s a Memo so it reacts to changes in the URL. It’s a `Result` because the params or query need to be parsed from the URL, and may or may not be valid.
+类型化版本返回 `Memo<Result<T, _>>`。它是一个 `Memo`，因此会响应 URL 的变化。同时，它是一个 `Result`，因为参数或查询需要从 URL 中解析，解析结果可能有效也可能无效。
 
 ```rust
 use leptos_router::hooks::{use_params, use_query};
@@ -61,7 +60,7 @@ let id = move || {
 };
 ```
 
-The untyped versions return `Memo<ParamsMap>`. Again, it’s memo to react to changes in the URL. [`ParamsMap`](https://docs.rs/leptos_router/latest/leptos_router/params/struct.ParamsMap.html) behaves a lot like any other map type, with a `.get()` method that returns `Option<String>`.
+非类型化版本返回 `Memo<ParamsMap>`。同样，它是 `Memo`，用于响应 URL 的变化。[`ParamsMap`](https://docs.rs/leptos_router/latest/leptos_router/params/struct.ParamsMap.html) 的行为类似于其他映射类型，提供 `.get()` 方法来返回 `Option<String>`。
 
 ```rust
 use leptos_router::hooks::{use_params_map, use_query_map};
@@ -73,12 +72,12 @@ let query = use_query_map();
 let id = move || params.read().get("id");
 ```
 
-This can get a little messy: deriving a signal that wraps an `Option<_>` or `Result<_>` can involve a couple steps. But it’s worth doing this for two reasons:
+这样做可能会显得有些繁琐：派生一个信号来封装 `Option<_>` 或 `Result<_>` 可能需要一些步骤。但这样做是值得的，原因有两点：
 
-1. It’s correct, i.e., it forces you to consider the cases, “What if the user doesn’t pass a value for this query field? What if they pass an invalid value?”
-2. It’s performant. Specifically, when you navigate between different paths that match the same `<Route/>` with only params or the query changing, you can get fine-grained updates to different parts of your app without rerendering. For example, navigating between different contacts in our contact-list example does a targeted update to the name field (and eventually contact info) without needing to replace or rerender the wrapping `<Contact/>`. This is what fine-grained reactivity is for.
+1. **正确性**：它迫使你考虑以下情况，“如果用户没有为查询字段传递值怎么办？如果传递了无效值怎么办？”
+2. **性能**：具体来说，当你在匹配相同 `<Route/>` 的路径之间导航时，仅参数或查询发生变化时，可以对应用程序的不同部分进行细粒度更新，而无需重新渲染。例如，在联系人列表示例中，在不同联系人之间导航时，会针对性地更新名称字段（以及联系信息），而无需替换或重新渲染整个 `<Contact/>` 组件。这正是细粒度响应式的用途所在。
 
-> This is the same example from the previous section. The router is such an integrated system that it makes sense to provide a single example highlighting multiple features, even if we haven’t explained them all yet.
+> 这实际上是上一节的示例。由于路由器系统是一个整体，所以提供了一个单一示例来展示多个特性，即使我们还没有全部解释清楚，也不必惊讶。
 
 ```admonish sandbox title="Live example" collapsible=true
 

@@ -1,34 +1,34 @@
-# Metadata
+# 元数据
 
-So far, everything we’ve rendered has been inside the `<body>` of the HTML document. And this makes sense. After all, everything you can see on a web page lives inside the `<body>`.
+到目前为止，我们渲染的所有内容都在 HTML 文档的 `<body>` 内。这是有道理的，毕竟网页上所有可见的内容都位于 `<body>` 中。
 
-However, there are plenty of occasions where you might want to update something inside the `<head>` of the document using the same reactive primitives and component patterns you use for your UI.
+然而，在某些情况下，你可能需要使用与 UI 相同的响应式原语和组件模式来更新文档 `<head>` 中的内容。
 
-That’s where the [`leptos_meta`](https://docs.rs/leptos_meta/latest/leptos_meta/) package comes in.
+这就是 [`leptos_meta`](https://docs.rs/leptos_meta/latest/leptos_meta/) 包的作用。
 
-## Metadata Components
+## 元数据组件
 
-`leptos_meta` provides special components that let you inject data from inside components anywhere in your application into the `<head>`:
+`leptos_meta` 提供了一些特殊组件，可以让你从应用程序的任何组件中向 `<head>` 注入数据：
 
-[`<Title/>`](https://docs.rs/leptos_meta/latest/leptos_meta/fn.Title.html) allows you to set the document’s title from any component. It also takes a `formatter` function that can be used to apply the same format to the title set by other pages. So, for example, if you put `<Title formatter=|text| format!("{text} — My Awesome Site")/>` in your `<App/>` component, and then `<Title text="Page 1"/>` and `<Title text="Page 2"/>` on your routes, you’ll get `Page 1 — My Awesome Site` and `Page 2 — My Awesome Site`.
+[`<Title/>`](https://docs.rs/leptos_meta/latest/leptos_meta/fn.Title.html) 允许你从任意组件设置文档的标题。它还支持一个 `formatter` 函数，用于对其他页面设置的标题应用相同的格式。例如，如果你在 `<App/>` 组件中放置 `<Title formatter=|text| format!("{text} — My Awesome Site")/>`，然后在路由中分别放置 `<Title text="Page 1"/>` 和 `<Title text="Page 2"/>`，你会得到 `Page 1 — My Awesome Site` 和 `Page 2 — My Awesome Site`。
 
-[`<Link/>`](https://docs.rs/leptos_meta/latest/leptos_meta/fn.Link.html) injects a `<link>` element into the `<head>`.
+[`<Link/>`](https://docs.rs/leptos_meta/latest/leptos_meta/fn.Link.html) 向 `<head>` 注入一个 `<link>` 元素。
 
-[`<Stylesheet/>`](https://docs.rs/leptos_meta/latest/leptos_meta/fn.Stylesheet.html) creates a `<link rel="stylesheet">` with the `href` you give.
+[`<Stylesheet/>`](https://docs.rs/leptos_meta/latest/leptos_meta/fn.Stylesheet.html) 创建一个带有指定 `href` 的 `<link rel="stylesheet">`。
 
-[`<Style/>`](https://docs.rs/leptos_meta/latest/leptos_meta/fn.Style.html) creates a `<style>` with the children you pass in (usually a string). You can use this to import some custom CSS from another file at compile time `<Style>{include_str!("my_route.css")}</Style>`.
+[`<Style/>`](https://docs.rs/leptos_meta/latest/leptos_meta/fn.Style.html) 创建一个 `<style>` 元素，并将你传递的子内容（通常是字符串）放入其中。可以在编译时引入其他文件的自定义 CSS，例如 `<Style>{include_str!("my_route.css")}</Style>`。
 
-[`<Meta/>`](https://docs.rs/leptos_meta/latest/leptos_meta/fn.Meta.html) lets you set `<meta>` tags with descriptions and other metadata.
+[`<Meta/>`](https://docs.rs/leptos_meta/latest/leptos_meta/fn.Meta.html) 允许你设置 `<meta>` 标签，如描述或其他元数据。
 
-## `<Script/>` and `<script>`
+## `<Script/>` 和 `<script>`
 
-`leptos_meta` also provides a [`<Script/>`](https://docs.rs/leptos_meta/latest/leptos_meta/fn.Script.html) component, and it’s worth pausing here for a second. All of the other components we’ve considered inject `<head>`-only elements in the `<head>`. But a `<script>` can also be included in the body.
+`leptos_meta` 还提供了一个 [`<Script/>`](https://docs.rs/leptos_meta/latest/leptos_meta/fn.Script.html) 组件。这里值得稍作停顿说明。上面提到的所有组件都将 `<head>` 元素注入 `<head>` 中，而 `<script>` 既可以放在 `<head>` 中，也可以放在 `<body>` 中。
 
-There’s a very simple way to determine whether you should use a capital-S `<Script/>` component or a lowercase-s `<script>` element: the `<Script/>` component will be rendered in the `<head>`, and the `<script>` element will be rendered wherever in the `<body>` of your user interface you put it in, alongside other normal HTML elements. These cause JavaScript to load and run at different times, so use whichever is appropriate to your needs.
+有一个简单的规则可以帮助你决定是使用 `<Script/>` 组件还是 `<script>` 元素：`<Script/>` 会被渲染到 `<head>` 中，而 `<script>` 会根据你在用户界面中放置的位置，直接渲染到 `<body>` 中。两者加载和运行 JavaScript 的时间不同，因此根据需要选择适合你的方式。
 
-## `<Body/>` and `<Html/>`
+## `<Body/>` 和 `<Html/>`
 
-There are even a couple elements designed to make semantic HTML and styling easier. `<Body/>` and `<Html/>` are designed to allow you to add arbitrary attributes to the `<html>` and `<body>` tags on your page. You can add any number of attributes using the usual Leptos syntax after the spread operator (`{..}`) and those will be added directly to the appropriate element.
+还有两个元素专为语义化 HTML 和样式设计提供便利：`<Body/>` 和 `<Html/>`。它们允许你向页面上的 `<html>` 和 `<body>` 标签添加任意属性。可以通过常规 Leptos 语法结合扩展操作符（`{..}`）添加任意数量的属性，这些属性会直接添加到相应的元素中。
 
 ```rust
 <Html
@@ -39,10 +39,10 @@ There are even a couple elements designed to make semantic HTML and styling easi
 />
 ```
 
-## Metadata and Server Rendering
+## 元数据与服务器端渲染
 
-Now, some of this is useful in any scenario, but some of it is especially important for search-engine optimization (SEO). Making sure you have things like appropriate `<title>` and `<meta>` tags is crucial. Modern search engine crawlers do handle client-side rendering, i.e., apps that are shipped as an empty `index.html` and rendered entirely in JS/WASM. But they prefer to receive pages in which your app has been rendered to actual HTML, with metadata in the `<head>`.
+某些场景下，上述功能是非常有用的，而在搜索引擎优化（SEO）中则尤为重要。确保拥有适当的 `<title>` 和 `<meta>` 标签是关键。现代搜索引擎爬虫确实能够处理客户端渲染的应用（即通过空的 `index.html` 加载，然后用 JS/WASM 渲染整个页面）。但搜索引擎更喜欢直接接收到已经渲染成实际 HTML 的页面，并带有 `<head>` 中的元数据。
 
-This is exactly what `leptos_meta` is for. And in fact, during server rendering, this is exactly what it does: collect all the `<head>` content you’ve declared by using its components throughout your application, and then inject it into the actual `<head>`.
+这正是 `leptos_meta` 的作用。事实上，在服务器端渲染时，它会收集整个应用程序中使用这些组件声明的所有 `<head>` 内容，然后将它们注入实际的 `<head>` 中。
 
-But I’m getting ahead of myself. We haven’t actually talked about server-side rendering yet. The next chapter will talk about integrating with JavaScript libraries. Then we’ll wrap up the discussion of the client side, and move onto server side rendering.
+不过我们稍微超前了一点。我们尚未正式讨论服务器端渲染。下一章将介绍如何与 JavaScript 库集成，然后完成客户端部分的讨论，接着进入服务器端渲染的主题。

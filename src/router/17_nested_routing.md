@@ -1,6 +1,6 @@
-# Nested Routing
+# 嵌套路由
 
-We just defined the following set of routes:
+我们刚刚定义了一组路由：
 
 ```rust
 <Routes fallback=|| "Not found.">
@@ -11,9 +11,9 @@ We just defined the following set of routes:
 </Routes>
 ```
 
-There’s a certain amount of duplication here: `/users` and `/users/:id`. This is fine for a small app, but you can probably already tell it won’t scale well. Wouldn’t it be nice if we could nest these routes?
+这里有一点重复：`/users` 和 `/users/:id`。对于一个小应用来说，这样写没问题，但你可能已经意识到它的可扩展性并不好。如果我们能把这些路由做一个嵌套，会不会更好呢？
 
-Well... you can!
+答案是：当然可以！
 
 ```rust
 <Routes fallback=|| "Not found.">
@@ -25,19 +25,19 @@ Well... you can!
 </Routes>
 ```
 
-You can nest a `<Route/>` inside a `<ParentRoute/>`. Seems straightforward.
+我们可以把一个 `<Route/>` 放在 `<ParentRoute/>` 里面。看上去很直接。
 
-But wait. We’ve just subtly changed what our application does.
+但是要注意，这样做已经悄悄地改变了我们的应用行为。
 
-The next section is one of the most important in this entire routing section of the guide. Read it carefully, and feel free to ask questions if there’s anything you don’t understand.
+接下来的内容是整个路由章节里最重要的部分之一。请仔细阅读，如果有任何不理解的地方，欢迎提问。
 
-# Nested Routes as Layout
+# 将嵌套路由视为布局
 
-Nested routes are a form of layout, not a method of route definition.
+嵌套路由是一种布局（layout）方式，而不是定义路由的一种手段。
 
-Let me put that another way: The goal of defining nested routes is not primarily to avoid repeating yourself when typing out the paths in your route definitions. It is actually to tell the router to display multiple `<Route/>`s on the page at the same time, side by side.
+换句话说：定义嵌套路由的主要目的，并不是为了在路由定义里少写一点重复的路径字符串，而是为了告诉路由器在页面上同时、并列地显示多个 `<Route/>` 组件。
 
-Let’s look back at our practical example.
+让我们再看一下之前的例子。
 
 ```rust
 <Routes fallback=|| "Not found.">
@@ -46,12 +46,12 @@ Let’s look back at our practical example.
 </Routes>
 ```
 
-This means:
+这意味着：
 
-- If I go to `/users`, I get the `<Users/>` component.
-- If I go to `/users/3`, I get the `<UserProfile/>` component (with the parameter `id` set to `3`; more on that later)
+- 当我访问 `/users` 时，会匹配 `<Users/>` 组件。
+- 当我访问 `/users/3` 时，会匹配 `<UserProfile/>` 组件（并将 `id` 参数设置为 `3`，后面会详细介绍如何获取参数）。
 
-Let’s say I use nested routes instead:
+如果我用嵌套路由来替换它：
 
 ```rust
 <Routes fallback=|| "Not found.">
@@ -61,12 +61,12 @@ Let’s say I use nested routes instead:
 </Routes>
 ```
 
-This means:
+这意味着：
 
-- If I go to `/users/3`, the path matches two `<Route/>`s: `<Users/>` and `<UserProfile/>`.
-- If I go to `/users`, the path is not matched.
+- 当我访问 `/users/3` 时，路径实际上会匹配两个 `<Route/>`：`<Users/>` 和 `<UserProfile/>`。
+- 当我访问 `/users` 时，其实并没有被匹配到任何路由。
 
-I actually need to add a fallback route
+所以，我需要添加一个回退路由（fallback）：
 
 ```rust
 <Routes>
@@ -77,22 +77,22 @@ I actually need to add a fallback route
 </Routes>
 ```
 
-Now:
+这样一来：
 
-- If I go to `/users/3`, the path matches `<Users/>` and `<UserProfile/>`.
-- If I go to `/users`, the path matches `<Users/>` and `<NoUser/>`.
+- 当我访问 `/users/3` 时，会匹配到 `<Users/>` 和 `<UserProfile/>`。
+- 当我访问 `/users` 时，会匹配到 `<Users/>` 和 `<NoUser/>`。
 
-When I use nested routes, in other words, each **path** can match multiple **routes**: each URL can render the views provided by multiple `<Route/>` components, at the same time, on the same page.
+换句话说，当使用嵌套路由时，每个**路径**可能会匹配到多个**路由**：同一个 URL 可以同时渲染多个 `<Route/>` 组件提供的视图，并且它们会在同一个页面上一起显示。
 
-This may be counter-intuitive, but it’s very powerful, for reasons you’ll hopefully see in a few minutes.
+这可能有些反直觉，但是它在某些场景中非常强大，原因你很快就会见到。
 
-## Why Nested Routing?
+## 为什么要使用嵌套路由？
 
-Why bother with this?
+这么折腾是为了什么？
 
-Most web applications contain levels of navigation that correspond to different parts of the layout. For example, in an email app you might have a URL like `/contacts/greg`, which shows a list of contacts on the left of the screen, and contact details for Greg on the right of the screen. The contact list and the contact details should always appear on the screen at the same time. If there’s no contact selected, maybe you want to show a little instructional text.
+大多数 Web 应用都有层级式的导航结构，对应不同的布局区域。比如，在一个电子邮件应用中，可能有一个 URL `/contacts/greg`，用来在屏幕左侧显示联系人列表，右侧显示名为 Greg 的联系人的详情。联系人列表和联系人的详细信息应该始终同时显示在屏幕上。如果没有选择任何联系人，你或许想在右侧显示一段提示文字。
 
-You can easily define this with nested routes
+使用嵌套路由，可以很轻松地实现：
 
 ```rust
 <Routes fallback=|| "Not found.">
@@ -105,7 +105,7 @@ You can easily define this with nested routes
 </Routes>
 ```
 
-You can go even deeper. Say you want to have tabs for each contact’s address, email/phone, and your conversations with them. You can add _another_ set of nested routes inside `:id`:
+你还可以继续深入嵌套。假设你想在某个联系人详情页里再分标签页，比如地址、邮箱/电话、以及与该联系人的会话记录。可以在 `:id` 下再添加**另一层**嵌套路由：
 
 ```rust
 <Routes fallback=|| "Not found.">
@@ -122,18 +122,18 @@ You can go even deeper. Say you want to have tabs for each contact’s address, 
 </Routes>
 ```
 
-> The main page of the [Remix website](https://remix.run/), a React framework from the creators of React Router, has a great visual example if you scroll down, with three levels of nested routing: Sales > Invoices > an invoice.
+> 如果你访问 [Remix 官网](https://remix.run/)（由 React Router 的开发者创建的 React 框架），主页有一个非常直观的例子，你往下滚动会看到三层嵌套路由：Sales > Invoices > 具体的 invoice。
 
 ## `<Outlet/>`
 
-Parent routes do not automatically render their nested routes. After all, they are just components; they don’t know exactly where they should render their children, and “just stick it at the end of the parent component” is not a great answer.
+父路由（`<ParentRoute/>` 或者 `<Route>` 里再嵌套路由）并不会自动渲染它们的嵌套子路由。毕竟，父级只是一个普通组件，不知道确切应该在哪里渲染它的子组件。而“把子组件贴在父组件结尾”也并不是一个好方案。
 
-Instead, you tell a parent component where to render any nested components with an `<Outlet/>` component. The `<Outlet/>` simply renders one of two things:
+相反，你需要通过 `<Outlet/>` 组件告诉父组件应该在哪里渲染嵌套路由。`<Outlet/>` 的逻辑非常简单：
 
-- if there is no nested route that has been matched, it shows nothing
-- if there is a nested route that has been matched, it shows its `view`
+- 如果没有匹配到任何子路由，就不渲染任何内容
+- 如果匹配到了子路由，就渲染该子路由对应的视图
 
-That’s all! But it’s important to know and to remember, because it’s a common source of “Why isn’t this working?” frustration. If you don’t provide an `<Outlet/>`, the nested route won’t be displayed.
+就这么简单！但这点非常重要，也是很多 “为什么渲染不出来？” 问题的来源。如果你没有放一个 `<Outlet/>`，那么对应的嵌套路由自然也不会显示。
 
 ```rust
 #[component]
@@ -142,24 +142,24 @@ pub fn ContactList() -> impl IntoView {
 
   view! {
     <div style="display: flex">
-      // the contact list
+      // 左侧联系人列表
       <For each=contacts
         key=|contact| contact.id
         children=|contact| todo!()
       />
-      // the nested child, if any
-      // don’t forget this!
+      // 如果有匹配到子路由，就在右侧渲染相应内容
+      // 别忘了这个 <Outlet/>！
       <Outlet/>
     </div>
   }
 }
 ```
 
-## Refactoring Route Definitions
+## 重构路由定义
 
-You don’t need to define all your routes in one place if you don’t want to. You can refactor any `<Route/>` and its children out into a separate component.
+如果你愿意，不必把所有的路由都定义在同一个地方。任何 `<Route/>` 及其子组件都可以被提取到单独的组件中去。
 
-For example, you can refactor the example above to use two separate components:
+例如，可以把上面这个示例重构成两个单独的组件：
 
 ```rust
 #[component]
@@ -191,21 +191,21 @@ fn ContactInfoRoutes() -> impl MatchNestedRoutes + Clone {
 }
 ```
 
-This second component is a `#[component(transparent)]`, meaning it just returns its data, not a view; likewise, it uses `.into_inner()` to remove some debug info added by the `view` macro and just return the route definitions created by `<ParentRoute/>`.
+第二个组件使用了 `#[component(transparent)]`，这意味着它仅仅返回数据，而不返回视图；同时，它使用 `.into_inner()` 来去除由 `view` 宏添加的调试信息，只返回 `<ParentRoute/>` 创建的路由定义。
 
-## Nested Routing and Performance
+## 嵌套路由与性能
 
-All of this is nice, conceptually, but again—what’s the big deal?
+到此为止，概念上都很不错，但它的真正价值在哪里？
 
-Performance.
+答案是：性能。
 
-In a fine-grained reactive library like Leptos, it’s always important to do the least amount of rendering work you can. Because we’re working with real DOM nodes and not diffing a virtual DOM, we want to “rerender” components as infrequently as possible. Nested routing makes this extremely easy.
+在像 Leptos 这样基于细粒度响应式的库中，始终要尽量减少渲染的工作量。因为我们直接使用真实的 DOM，而不是对虚拟 DOM 进行 diff，我们希望尽可能少地 “重新渲染” 组件。嵌套路由会让这件事变得非常简单。
 
-Imagine my contact list example. If I navigate from Greg to Alice to Bob and back to Greg, the contact information needs to change on each navigation. But the `<ContactList/>` should never be rerendered. Not only does this save on rendering performance, it also maintains state in the UI. For example, if I have a search bar at the top of `<ContactList/>`, navigating from Greg to Alice to Bob won’t clear the search.
+想象一下上面的联系人示例：当我在联系人间切换（Greg → Alice → Bob → Greg），右侧的联系人信息需要改变，但 `<ContactList/>` 组件本身却**不需要**重新渲染。这样不仅节省了渲染性能，也能保留 UI 状态。比如在 `<ContactList/>` 顶部可能有个搜索框，切换联系人时也不会清空搜索内容。
 
-In fact, in this case, we don’t even need to rerender the `<Contact/>` component when moving between contacts. The router will just reactively update the `:id` parameter as we navigate, allowing us to make fine-grained updates. As we navigate between contacts, we’ll update single text nodes to change the contact’s name, address, and so on, without doing _any_ additional rerendering.
+实际上，在这种情况下，导航联系人时也不需要让 `<Contact/>` 组件重新渲染。路由器会在导航过程中响应式地更新 `:id` 参数，我们只需进行一些细粒度的更新即可。当在不同联系人间切换时，只会更新文本节点来改变联系人姓名、地址等信息，**而不需要进行额外的任何整体重新渲染**。
 
-> This sandbox includes a couple features (like nested routing) discussed in this section and the previous one, and a couple we’ll cover in the rest of this chapter. The router is such an integrated system that it makes sense to provide a single example, so don’t be surprised if there’s anything you don’t understand.
+> 这里的示例 sandbox 中包含了本节和上一节讨论的一些特性（比如嵌套路由），以及我们在本章后续部分会提到的一些特性。由于路由器系统是一个整体，所以我们选择使用一个示例来综合展示。如果有任何地方你看不太懂，也不用惊讶。可以先了解大概思路，再继续往后看。
 
 ```admonish sandbox title="Live example" collapsible=true
 

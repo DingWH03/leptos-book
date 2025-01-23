@@ -1,16 +1,16 @@
-# Interlude: Styling
+# 插曲：样式
 
-Anyone creating a website or application soon runs into the question of styling. For a small app, a single CSS file is probably plenty to style your user interface. But as an application grows, many developers find that plain CSS becomes increasingly hard to manage.
+几乎所有在做网站或应用开发的人都会碰到一个问题：怎么给界面加样式？对于一个小应用来说，用一份 CSS 文件来管理全部样式就足够了。但随着应用规模的增长，许多开发者会发现纯 CSS 越来越难以维护。
 
-Some frontend frameworks (like Angular, Vue, and Svelte) provide built-in ways to scope your CSS to particular components, making it easier to manage styles across a whole application without styles meant to modify one small component having a global effect. Other frameworks (like React or Solid) don’t provide built-in CSS scoping, but rely on libraries in the ecosystem to do it for them. Leptos is in this latter camp: the framework itself has no opinions about CSS at all, but provides a few tools and primitives that allow others to build styling libraries.
+一些前端框架（如 Angular、Vue、Svelte）内置了将 CSS 作用域限定到特定组件的方法，能更轻松地管理大型应用的样式，避免只想改一个小组件的样式却影响到全局。另一些框架（如 React、Solid）并没有内置的 CSS 作用域功能，而是依赖社区生态中的库来实现。Leptos 也属于后者：它本身对 CSS 并没有任何看法，但是提供了一些工具和基础功能，方便其他人建立自己的样式库。
 
-Here are a few different approaches to styling your Leptos app, other than plain CSS.
+下面介绍在 Leptos 应用中，除了直接使用纯 CSS 以外的几种常见做法。
 
-## TailwindCSS: Utility-first CSS
+## TailwindCSS：基于工具类的 CSS
 
-[TailwindCSS](https://tailwindcss.com/) is a popular utility-first CSS library. It allows you to style your application by using inline utility classes, with a custom CLI tool that scans your files for Tailwind class names and bundles the necessary CSS.
+[TailwindCSS](https://tailwindcss.com/) 是一个流行的“工具类优先（utility-first）”CSS 库。它通过在模板中使用各类工具类（utility class）进行样式控制，并配合一个自定义 CLI 工具扫描代码中所有 Tailwind 类名，然后打包所需 CSS。
 
-This allows you to write components like this:
+这样，你可以写出类似如下的组件：
 
 ```rust
 #[component]
@@ -36,13 +36,13 @@ fn Home() -> impl IntoView {
 }
 ```
 
-It can be a little complicated to set up the Tailwind integration at first, but you can check out our two examples of how to use Tailwind with a [client-side-rendered `trunk` application](https://github.com/leptos-rs/leptos/tree/main/examples/tailwind_csr) or with a [server-rendered `cargo-leptos` application](https://github.com/leptos-rs/leptos/tree/main/examples/tailwind_actix). `cargo-leptos` also has some [built-in Tailwind support](https://github.com/leptos-rs/cargo-leptos#site-parameters) that you can use as an alternative to Tailwind’s CLI.
+初次配置 Tailwind 需要一些步骤。你可以查看以下示例，了解如何在 [client-side-rendered 的 `trunk` 应用](https://github.com/leptos-rs/leptos/tree/main/examples/tailwind_csr)或 [server-rendered 的 `cargo-leptos` 应用](https://github.com/leptos-rs/leptos/tree/main/examples/tailwind_actix) 中使用 Tailwind。`cargo-leptos` 还提供了[内置的 Tailwind 支持](https://github.com/leptos-rs/cargo-leptos#site-parameters)，可用于替代 Tailwind CLI。
 
-## Stylers: Compile-time CSS Extraction
+## Stylers：编译期提取 CSS
 
-[Stylers](https://github.com/abishekatp/stylers) is a compile-time scoped CSS library that lets you declare scoped CSS in the body of your component. Stylers will extract this CSS at compile time into CSS files that you can then import into your app, which means that it doesn’t add anything to the WASM binary size of your application.
+[Stylers](https://github.com/abishekatp/stylers) 是一个编译期作用域 CSS 库，允许你在组件里内联定义局部（作用域）CSS。Stylers 会在编译期提取这些 CSS 到独立的文件中，然后在你的应用中引入。因此它不会额外增加应用的 WASM 二进制体积。
 
-This allows you to write components like this:
+下面是一个使用 Stylers 编写组件的示例：
 
 ```rust
 use stylers::style;
@@ -85,11 +85,11 @@ pub fn App() -> impl IntoView {
 }
 ```
 
-## Stylance: Scoped CSS Written in CSS Files
+## Stylance：将作用域 CSS 写在独立文件中
 
-Stylers lets you write CSS inline in your Rust code, extracts it at compile time, and scopes it. [Stylance](https://github.com/basro/stylance-rs) allows you to write your CSS in CSS files alongside your components, import those files into your components, and scope the CSS classes to your components.
+Stylers 让你可以在 Rust 代码中内联写 CSS，并在编译期提取和作用域化。[Stylance](https://github.com/basro/stylance-rs) 则允许你在单独的 CSS 文件中编写样式，然后在组件中引入，并把 CSS 类作用域限定到对应的组件。
 
-This works well with the live-reloading features of `trunk` and `cargo-leptos` because edited CSS files can be updated immediately in the browser.
+这种方式与 `trunk` 和 `cargo-leptos` 的热重载（live reloading）特性配合得很好，因为你可以直接编辑 CSS 文件并在浏览器中立刻看到更新。
 
 ```rust
 import_style!(style, "app.module.scss");
@@ -102,7 +102,7 @@ fn HomePage() -> impl IntoView {
 }
 ```
 
-You can edit the CSS directly without causing a Rust recompile.
+你可以直接编辑 CSS 文件，而无需引发 Rust 重新编译：
 
 ```css
 .jumbotron {
@@ -110,6 +110,6 @@ You can edit the CSS directly without causing a Rust recompile.
 }
 ```
 
-## Contributions Welcome
+## 欢迎贡献
 
-Leptos has no opinions on how you style your website or app, but we’re very happy to provide support to any tools you’re trying to create to make it easier. If you’re working on a CSS or styling approach that you’d like to add to this list, please let us know!
+Leptos 本身对样式没有特定主张，但我们很乐意为任何旨在简化样式管理的工具提供支持。如果你正在开发某种 CSS 或样式方案，并且想要把它加入这份清单，请告诉我们！

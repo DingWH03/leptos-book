@@ -1,13 +1,12 @@
-# Part 2: Server Side Rendering
+# 第二部分：服务端渲染
 
-As you read in the last chapter, there are some limitations to using client-side rendered web applications. This second part of the book will discuss how to use server-side rendering to overcome these limitations and get the best performance and SEO out of your Leptos apps.
-
+在上一章中，你了解到客户端渲染的 Web 应用存在一些限制。本书的第二部分将讨论如何使用服务端渲染 (Server-Side Rendering, SSR) 来克服这些限制，从而为你的 Leptos 应用提供最佳性能和 SEO 表现。
 
 ```admonish info
 
-When working with Leptos on the server side, you’re free to choose either an officially supported Actix or Axum integrations, or one of our community supported choices. The full feature set of Leptos is available with the official choices, the community ones may support less. Check their documentation for details.
+当在服务端使用 Leptos 时，你可以选择官方支持的 Actix 或 Axum 集成，也可以选择由社区支持的其他方案。官方选择提供 Leptos 的全部功能，而社区方案可能支持较少。请参考它们的文档了解详细信息。
 
-We have a variety of community supported choices, including WinterCG-compatible runtimes like Deno or Cloudflareand server-side WASM runtimes like Spin. Community-supported integrations for Viz and Pavex offer more traditional server choices. Writing an integration yourself isn't recommended as a beginner, but medium/advanced Rust users may wish to. Feel free to reach out if you have questions about that on our Discord or Github.
+我们有多种社区支持的选择，包括兼容 WinterCG 的运行时（如 Deno 或 Cloudflare）以及服务端 WASM 运行时（如 Spin）。此外，还有更传统的服务端选择，如 Viz 和 Pavex 的社区集成。不建议初学者自己编写集成，但中高级 Rust 用户可能会有兴趣这样做。如果有相关问题，欢迎在我们的 Discord 或 Github 上联系我们。
 
-I'd recommend either Axum or Actix for beginners. Both are fully functional and choosing between them is a matter of personal preference. There is no wrong choice there, but if you’re looking for a recommendation, the Leptos team currently defaults to Axum for new projects.
+对于初学者，推荐使用 Axum 或 Actix。两者功能齐全，选择哪个完全取决于个人喜好。没有错误的选择，但如果你需要建议，Leptos 团队目前默认在新项目中使用 Axum。
 ```

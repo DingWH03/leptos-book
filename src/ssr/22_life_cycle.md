@@ -1,43 +1,43 @@
-# The Life of a Page Load
+# 页面加载的生命周期
 
-Before we get into the weeds it might be helpful to have a higher-level overview. What exactly happens between the moment you type in the URL of a server-rendered Leptos app, and the moment you click a button and a counter increases?
+在深入讨论之前，了解一下更高层次的概览可能会有所帮助。从你在浏览器中输入一个服务器渲染的 Leptos 应用的 URL 到点击按钮使计数器增加之间，究竟发生了什么？
 
-I’m assuming some basic knowledge of how the Internet works here, and won’t get into the weeds about HTTP or whatever. Instead, I’ll try to show how different parts of the Leptos APIs map onto each part of the process.
+这里假设你对互联网的工作原理有一定的了解，因此不会详细讨论 HTTP 或其他相关内容。我们将着重展示 Leptos API 的不同部分如何对应于整个过程的各个阶段。
 
-This description also starts from the premise that your app is being compiled for two separate targets:
+本文基于以下前提：你的应用是为两个独立的目标进行编译的：
 
-1. A server version, often running on Actix or Axum, compiled with the Leptos `ssr` feature
-2. A browser version, compiled to WebAssembly (WASM) with the Leptos `hydrate` feature
+1. **服务器版本**：通常运行在 Actix 或 Axum 上，使用 Leptos 的 `ssr` 功能进行编译；
+2. **浏览器版本**：编译为 WebAssembly (WASM)，使用 Leptos 的 `hydrate` 功能进行编译。
 
-The [`cargo-leptos`](https://github.com/leptos-rs/cargo-leptos) build tool exists to coordinate the process of compiling your app for these two different targets.
+[`cargo-leptos`](https://github.com/leptos-rs/cargo-leptos) 构建工具的作用就是协调为这两个不同目标编译你的应用程序的过程。
 
-## On the Server
+## 在服务器端
 
-- Your browser makes a `GET` request for that URL to your server. At this point, the browser knows almost nothing about the page that’s going to be rendered. (The question “How does the browser know where to ask for the page?” is an interesting one, but out of the scope of this tutorial!)
-- The server receives that request, and checks whether it has a way to handle a `GET` request at that path. This is what the `.leptos_routes()` methods in [`leptos_axum`](https://docs.rs/leptos_axum/latest/leptos_axum/trait.LeptosRoutes.html) and [`leptos_actix`](https://docs.rs/leptos_actix/latest/leptos_actix/trait.LeptosRoutes.html) are for. When the server starts up, these methods walk over the routing structure you provide in `<Routes/>`, generating a list of all possible routes your app can handle and telling the server’s router “for each of these routes, if you get a request... hand it off to Leptos.”
-- The server sees that this route can be handled by Leptos. So it renders your root component (often called something like `<App/>`), providing it with the URL that’s being requested and some other data like the HTTP headers and request metadata.
-- Your application runs once on the server, building up an HTML version of the component tree that will be rendered at that route. (There’s more to be said here about resources and `<Suspense/>` in the next chapter.)
-- The server returns this HTML page, also injecting information on how to load the version of your app that has been compiled to WASM so that it can run in the browser.
+- 浏览器向服务器发出一个针对该 URL 的 `GET` 请求。这时，浏览器对将要渲染的页面几乎一无所知。（至于“浏览器如何知道要向哪里请求页面？”是一个有趣的问题，但超出了本教程的范围！）
+- 服务器接收到请求，并检查是否有处理该路径的 `GET` 请求的方法。这正是 [`leptos_axum`](https://docs.rs/leptos_axum/latest/leptos_axum/trait.LeptosRoutes.html) 和 [`leptos_actix`](https://docs.rs/leptos_actix/latest/leptos_actix/trait.LeptosRoutes.html) 中 `.leptos_routes()` 方法的用途。当服务器启动时，这些方法会根据 `<Routes/>` 提供的路由结构生成应用程序可以处理的所有路由列表，并告诉服务器的路由器：“对于每一个这些路由，如果接收到请求……将其交给 Leptos 处理。”
+- 服务器发现该路由可以由 Leptos 处理。因此，它渲染你的根组件（通常称为 `<App/>`），并向其提供正在请求的 URL 以及其他一些数据（例如 HTTP 头信息和请求元数据）。
+- 应用程序在服务器端运行一次，生成该路由下组件树的 HTML 版本。（有关资源和 `<Suspense/>` 的更多内容将在下一章讨论。）
+- 服务器返回这个 HTML 页面，同时注入信息，用于加载已编译为 WASM 的客户端版本以及初始化它所需的 JavaScript。
 
-> The HTML page that’s returned is essentially your app, “dehydrated” or “freeze-dried”: it is HTML without any of the reactivity or event listeners you’ve added. The browser will “rehydrate” this HTML page by adding the reactive system and attaching event listeners to that server-rendered HTML. Hence the two feature flags that apply to the two halves of this process: `ssr` on the server for “server-side rendering”, and `hydrate` in the browser for that process of rehydration.
+> 返回的 HTML 页面本质上是你的应用程序的“脱水版”或“冻干版”：它是没有任何反应式功能或事件监听器的 HTML。浏览器会通过为服务器渲染的 HTML 添加反应式系统并附加事件监听器来“重水化”该页面。因此，这个过程的两个阶段分别使用了两种功能标志：服务器端渲染的 `ssr` 和浏览器端重水化的 `hydrate`。
 
-## In the Browser
+## 在浏览器端
 
-- The browser receives this HTML page from the server. It immediately goes back to the server to begin loading the JS and WASM necessary to run the interactive, client side version of the app.
-- In the meantime, it renders the HTML version.
-- When the WASM version has reloaded, it does the same route-matching process that the server did. Because the `<Routes/>` component is identical on the server and in the client, the browser version will read the URL and render the same page that was already returned by the server.
-- During this initial “hydration” phase, the WASM version of your app doesn’t re-create the DOM nodes that make up your application. Instead, it walks over the existing HTML tree, “picking up” existing elements and adding the necessary interactivity.
+- 浏览器从服务器接收到这个 HTML 页面。然后，它会立即向服务器请求加载运行交互式客户端版本所需的 JS 和 WASM。
+- 在此期间，浏览器渲染 HTML 版本。
+- 当 WASM 版本加载完成后，它会执行与服务器相同的路由匹配过程。因为 `<Routes/>` 组件在服务器端和客户端是完全一致的，浏览器版本会读取 URL 并渲染与服务器返回的页面相同的内容。
+- 在初始“重水化”阶段，WASM 版本不会重新创建组成应用的 DOM 节点。相反，它会遍历现有的 HTML 树，“拾取”已有的元素，并添加必要的交互功能。
 
-> Note that there are some trade-offs here. Before this hydration process is complete, the page will _appear_ interactive but won’t actually respond to interactions. For example, if you have a counter button and click it before WASM has loaded, the count will not increment, because the necessary event listeners and reactivity have not been added yet. We’ll look at some ways to build in “graceful degradation” in future chapters.
+> 需要注意的是，这里有一些权衡。在完成重水化之前，页面看起来是交互式的，但实际上不会响应交互。例如，如果你有一个计数按钮，并在 WASM 加载完成之前点击它，计数不会增加，因为必要的事件监听器和反应式功能尚未添加。我们将在后续章节中讨论如何实现“优雅降级”。
 
-## Client-Side Navigation
+## 客户端导航
 
-The next step is very important. Imagine that the user now clicks a link to navigate to another page in your application.
+接下来的步骤非常重要。假设用户现在点击了一个链接，导航到应用程序中的另一个页面。
 
-The browser will _not_ make another round trip to the server, reloading the full page as it would for navigating between plain HTML pages or an application that uses server rendering (for example with PHP) but without a client-side half.
+此时，浏览器**不会**再次向服务器发送请求，也不会像普通 HTML 页面或仅使用服务端渲染（如 PHP）应用那样重新加载整个页面。
 
-Instead, the WASM version of your app will load the new page, right there in the browser, without requesting another page from the server. Essentially, your app upgrades itself from a server-loaded “multi-page app” into a browser-rendered “single-page app.” This yields the best of both worlds: a fast initial load time due to the server-rendered HTML, and fast secondary navigations because of the client-side routing.
+相反，WASM 版本的应用程序会在浏览器中直接加载新页面，而无需从服务器请求其他页面。基本上，应用程序会从一个服务器加载的“多页面应用程序”升级为一个浏览器渲染的“单页面应用程序”。这结合了两种模式的最佳优点：服务器渲染的 HTML 提供了快速的初始加载时间，而客户端路由提供了快速的二次导航。
 
-Some of what will be described in the following chapters—like the interactions between server functions, resources, and `<Suspense/>`—may seem overly complicated. You might find yourself asking, “If my page is being rendered to HTML on the server, why can’t I just `.await` this on the server? If I can just call library X in a server function, why can’t I call it in my component?” The reason is pretty simple: to enable the upgrade from server rendering to client rendering, everything in your application must be able to run either on the server or in the browser.
+在后续章节中描述的一些内容（例如服务器函数、资源与 `<Suspense/>` 的交互）可能看起来过于复杂。你可能会问：“如果我的页面已经在服务器上渲染为 HTML，为什么我不能直接在服务器上 `.await`？如果我可以在服务器函数中调用库 X，为什么不能在组件中调用它？”原因很简单：为了实现从服务器渲染到客户端渲染的平滑过渡，应用中的所有内容都必须能够在服务器或浏览器中运行。
 
-This is not the only way to create a website or web framework, of course. But it’s the most common way, and we happen to think it’s quite a good way, to create the smoothest possible experience for your users.
+当然，这并不是创建网站或 Web 框架的唯一方式。但我们认为，这是为用户创造尽可能平滑体验的一种非常好的方法。

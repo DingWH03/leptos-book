@@ -1,60 +1,36 @@
-# Integrating with JavaScript: `wasm-bindgen`, `web_sys` and `HtmlElement`
+# 与 JavaScript 集成：`wasm-bindgen`、`web_sys` 和 `HtmlElement`
 
-Leptos provides a variety of tools to allow you to build declarative web applications without leaving the world
-of the framework. Things like the reactive system, `component` and `view` macros, and router allow you to build
-user interfaces without directly interacting with the Web APIs provided by the browser. And they let you do it
-all directly in Rust, which is great—assuming you like Rust. (And if you’ve gotten this far in the book, we assume
-you like Rust.)
+Leptos 提供了多种工具，让你能够构建声明式 Web 应用，而无需离开框架的世界。像反应式系统、`component` 和 `view` 宏以及路由器等工具，可以让你直接用 Rust 构建用户界面，这非常棒——假设你喜欢 Rust。（如果你已经读到了本书的这个部分，我们假设你确实喜欢 Rust。）
 
-Ecosystem crates like the fantastic set of utilities provided by [`leptos-use`](https://leptos-use.rs/) can take you
-even further, by providing Leptos-specific reactive wrappers around many Web APIs.
+像 [`leptos-use`](https://leptos-use.rs/) 提供的一整套出色的工具，可以更进一步，为许多 Web API 提供针对 Leptos 的反应式封装。
 
-Nevertheless, in many cases you will need to access JavaScript libraries or Web APIs directly. This chapter can help.
+然而，在许多情况下，你仍然需要直接访问 JavaScript 库或 Web API。本章将为你提供帮助。
 
-## Using JS Libraries with `wasm-bindgen`
+## 使用 `wasm-bindgen` 调用 JavaScript 库
 
-Your Rust code can be compiled to a WebAssembly (WASM) module and loaded to run in the browser. However, WASM does not
-have direct access to browser APIs. Instead, the Rust/WASM ecosystem depends on generating bindings from your Rust code
-to the JavaScript browser environment that hosts it.
+你的 Rust 代码可以被编译为 WebAssembly (WASM) 模块并在浏览器中运行。然而，WASM 无法直接访问浏览器的 API。Rust/WASM 生态系统依赖于从 Rust 代码生成绑定，以与 JavaScript 浏览器环境交互。
 
-The [`wasm-bindgen`](https://rustwasm.github.io/docs/wasm-bindgen/) crate is at the center of that ecosystem. It provides
-both an interface for marking parts of Rust code with annotations telling it how to call JS, and a CLI tool for generating
-the necessary JS glue code. You’ve been using this without knowing it all along: both `trunk` and `cargo-leptos` rely on
-`wasm-bindgen` under the hood.
+[`wasm-bindgen`](https://rustwasm.github.io/docs/wasm-bindgen/) 是该生态系统的核心。它提供了用于标记 Rust 代码部分的接口，这些标记可以告诉编译器如何调用 JavaScript，以及一个 CLI 工具，用于生成必要的 JavaScript glue 代码。事实上，你一直在不知不觉中使用它：`trunk` 和 `cargo-leptos` 都在底层依赖 `wasm-bindgen`。
 
-If there is a JavaScript library that you want to call from Rust, you should refer to the `wasm-bindgen` docs on
-[importing functions from JS](https://rustwasm.github.io/docs/wasm-bindgen/examples/import-js.html). It is relatively
-easy to import individual functions, classes, or values from JavaScript to use in your Rust app.
+如果你想从 Rust 中调用某个 JavaScript 库，可以参考 `wasm-bindgen` 的文档 [导入 JavaScript 函数](https://rustwasm.github.io/docs/wasm-bindgen/examples/import-js.html)。它可以让你轻松地从 JavaScript 导入函数、类或值，并在 Rust 应用中使用。
 
-It is not always easy to integrate JS libraries into your app directly. In particular, any library that depends on a
-particular JS framework like React may be hard to integrate. Libraries that manipulate DOM state in some way (for example,
-rich text editors) should also be used with care: both Leptos and the JS library will probably assume that they are
-the ultimate source of truth for the app’s state, so you should be careful to separate their responsibilities.
+但将 JavaScript 库直接集成到应用中并不总是简单的。特别是那些依赖于特定 JavaScript 框架（如 React）的库可能难以集成。那些以某种方式操作 DOM 状态的库（如富文本编辑器）也需要小心使用，因为 Leptos 和 JavaScript 库可能都认为自己是应用状态的最终真相来源，因此需要注意分离它们的职责。
 
-## Accessing Web APIs with `web-sys`
+## 使用 `web-sys` 访问 Web API
 
-If you just need to access some browser APIs without pulling in a separate JS library, you can do so using the
-[`web_sys`](https://docs.rs/web-sys/latest/web_sys/) crate. This provides bindings for all of the Web APIs provided by
-the browser, with 1:1 mappings from browser types and functions to Rust structs and methods.
+如果你只是需要访问一些浏览器 API，而不需要引入单独的 JavaScript 库，可以使用 [`web_sys`](https://docs.rs/web-sys/latest/web_sys/) crate。它为浏览器提供的所有 Web API 提供了绑定，将浏览器的类型和函数 1:1 映射到 Rust 的结构体和方法。
 
-In general, if you’re asking “how do I _do X_ with Leptos?” where _do X_ is accessing some Web API, looking up a vanilla
-JavaScript solution and translating it to Rust using the [`web-sys` docs](https://docs.rs/web-sys/latest/web_sys/) is a
-good approach.
+通常，如果你在问“如何用 Leptos **做某事**”，其中“做某事”是指访问某些 Web API，那么查找一个纯 JavaScript 解决方案并通过 [`web-sys` 文档](https://docs.rs/web-sys/latest/web_sys/) 将其翻译为 Rust 是一个不错的选择。
 
-> After this section, you might find
-> [the `wasm-bindgen` guide chapter on `web-sys`](https://rustwasm.github.io/docs/wasm-bindgen/web-sys/index.html)
-> useful for additional reading.
+> 你可能会发现 [`wasm-bindgen` 指南关于 `web-sys` 的章节](https://rustwasm.github.io/docs/wasm-bindgen/web-sys/index.html) 对进一步阅读很有帮助。
 
-### Enabling features
+### 启用特性(features)
 
-`web_sys` is heavily feature-gated to keep compile times low. If you would like to use one of its many APIs, you may
-need to enable a feature to use it.
+`web_sys` 使用了大量功能标志来降低编译时间。如果你想使用它的某些 API，可能需要启用相应的功能。
 
-The features required to use an item are always listed in its documentation.
-For example, to use [`Element::get_bounding_rect_client`](https://docs.rs/web-sys/latest/web_sys/struct.Element.html#method.get_bounding_client_rect), you need to enable the `DomRect` and `Element` features.
+文档中会列出使用某个项目所需的功能。例如，要使用 [`Element::get_bounding_rect_client`](https://docs.rs/web-sys/latest/web_sys/struct.Element.html#method.get_bounding_client_rect)，你需要启用 `DomRect` 和 `Element` 功能。
 
-Leptos already enables [a whole bunch](https://github.com/leptos-rs/leptos/blob/main/leptos_dom/Cargo.toml#L41) of features - if the required feature is already enabled here, you won't have to enable it in your own app.
-Otherwise, add it to your `Cargo.toml` and you’re good to go!
+Leptos 已经启用了 [很多功能](https://github.com/leptos-rs/leptos/blob/main/leptos_dom/Cargo.toml#L41)，如果所需功能已经在这里启用，你就不需要在自己的应用中启用它了。否则，只需在你的 `Cargo.toml` 中添加它即可：
 
 ```toml
 [dependencies.web-sys]
@@ -62,36 +38,30 @@ version = "0.3"
 features = ["DomRect"]
 ```
 
-However, as the JavaScript standard evolves and APIs are being written, you may want to use browser features that are technically not fully stable yet, such as [WebGPU](https://docs.rs/web-sys/latest/web_sys/struct.Gpu.html).
-`web_sys` will follow the (potentially frequently changing) standard, which means that no stability guarantees are made.
+然而，随着 JavaScript 标准的演变，可能会出现尚未完全稳定的浏览器功能（如 [WebGPU](https://docs.rs/web-sys/latest/web_sys/struct.Gpu.html)）。`web_sys` 将跟随这一标准，这意味着不提供稳定性保证。
 
-In order to use this, you need to add `RUSTFLAGS=--cfg=web_sys_unstable_apis` as an environment variable.
-This can either be done by adding it to every command, or add it to `.cargo/config.toml` in your repository.
+要使用这些功能，你需要添加 `RUSTFLAGS=--cfg=web_sys_unstable_apis` 作为环境变量。这可以通过每次运行命令时添加，或者将其添加到你的项目的 `.cargo/config.toml` 中。
 
-As part of a command:
+作为命令的一部分：
 
 ```sh
 RUSTFLAGS=--cfg=web_sys_unstable_apis cargo # ...
 ```
 
-In `.cargo/config.toml`:
+在 `.cargo/config.toml` 中：
 
 ```toml
 [env]
 RUSTFLAGS = "--cfg=web_sys_unstable_apis"
 ```
 
-## Accessing raw `HtmlElement`s from your `view`
+## 从 `view` 中访问原始 `HtmlElement`
 
-The declarative style of the framework means that you don’t need to directly manipulate DOM nodes to build up your user interface.
-However, in some cases you want direct access to the underlying DOM element that represents part of your view. The section of the book
-on [“uncontrolled inputs”](/view/05_forms.html?highlight=NodeRef#uncontrolled-inputs) showed how to do this using the
-[`NodeRef`](https://docs.rs/leptos/latest/leptos/tachys/reactive_graph/node_ref/struct.NodeRef.html) type.
+框架的声明式风格意味着你不需要直接操作 DOM 节点来构建用户界面。然而，在某些情况下，你可能希望直接访问表示视图部分的底层 DOM 元素。书中关于 [“非受控输入”](/view/05_forms.html?highlight=NodeRef#uncontrolled-inputs) 的部分介绍了如何使用 [`NodeRef`](https://docs.rs/leptos/latest/leptos/tachys/reactive_graph/node_ref/struct.NodeRef.html) 类型实现这一点。
 
-`NodeRef::get` returns a correctly-typed
-`web-sys` element that can be directly manipulated.
+`NodeRef::get` 返回一个经过正确类型化的 `web-sys` 元素，可以直接操作。
 
-For example, consider the following:
+例如，以下代码：
 
 ```rust
 #[component]
@@ -110,6 +80,6 @@ pub fn App() -> impl IntoView {
 }
 ```
 
-Inside the effect here, `node` is simply a `web_sys::HtmlInputElement`. This allows us to call any appropriate methods.
+在这里的 Effect 中，`node` 是一个 `web_sys::HtmlInputElement`。这使得我们可以调用任何适当的方法。
 
-(Note that `.get()` returns an `Option` here, because the `NodeRef` is empty until it is filled when the DOM elements are actually created. Effects run a tick after the component runs, so in most cases the `<input>` will already have been created by the time the effect runs.)
+（注意，`.get()` 在这里返回一个 `Option`，因为在 DOM 元素实际创建之前，`NodeRef` 是空的。Effects 在组件运行后延迟一个周期运行，因此在大多数情况下，当 Effect 运行时，`<input>` 已经被创建。）
