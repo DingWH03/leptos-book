@@ -60,6 +60,21 @@ if names.read().is_empty() {
 
 现在，我们的函数通过引用访问 `names` 来运行 `is_empty()`，避免了克隆操作，并且直接对原有的 `Vec<_>` 进行修改。
 
+## 线程安全和线程局部值
+
+你可能已经注意到，无论是通过阅读文档还是通过自己实验应用程序，存储在信号中的值必须是 `Send + Sync` 的。这是因为反应式系统实际上支持多线程：信号可以跨线程传递，整个反应式图可以在多个线程上工作。（这在使用像 Axum 这样的服务器框架进行 [服务器端渲染](../ssr/README.md) 时特别有用，这些框架使用 Tokio 的多线程执行器。）在大多数情况下，这对你所做的没有影响：普通的 Rust 数据类型默认是 `Send + Sync` 的。
+
+然而，浏览器环境是单线程的，除非你使用 Web Worker，并且 `wasm-bindgen` 和 `web-sys` 提供的 JavaScript 类型都明确是 `!Send`。这意味着它们不能存储在普通的信号中。
+
+因此，我们为每种信号原语提供了“局部”替代方案，可以用于存储 `!Send` 数据。你应该仅在需要存储 `!Send` 浏览器类型到信号中时，才使用这些替代方案。
+
+| 标准版本 | 局部版本 |
+| -------- | -------- |
+| [`signal`](https://docs.rs/leptos/latest/leptos/reactive/signal/fn.signal.html) | [`signal_local`](https://docs.rs/leptos/latest/leptos/prelude/fn.signal_local.html) |
+| [`RwSignal::new`](https://docs.rs/leptos/latest/leptos/prelude/struct.RwSignal.html#method.new) | [`RwSignal::new_local`](https://docs.rs/leptos/latest/leptos/prelude/struct.RwSignal.html#method.new_local) |
+| [`Resource`](https://docs.rs/leptos/latest/leptos/prelude/struct.Resource.html) | [`LocalResource`](https://docs.rs/leptos/latest/leptos/prelude/struct.LocalResource.html) |
+| [`Action::new`](https://docs.rs/leptos/latest/leptos/prelude/struct.Action.html#method.new) | [`Action::new_local`](https://docs.rs/leptos/latest/leptos/prelude/struct.Action.html#method.new_local), [`Action::new_unsync`](https://docs.rs/leptos/latest/leptos/prelude/struct.Action.html#method.new_unsync) |
+
 ## Nightly 语法
 
 在使用 `nightly` 特性和 `nightly` 语法时，将 `ReadSignal` 作为函数调用是 `.get()` 的语法糖。将 `WriteSignal` 作为函数调用是 `.set()` 的语法糖。因此：

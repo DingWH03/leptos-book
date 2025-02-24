@@ -4,7 +4,7 @@
 
 不过，有时你可能需要在父组件和子组件之间进行通信。例如，假设你定义了一个 `<FancyButton/>` 组件，为 `<button/>` 添加了一些样式、日志记录或其他功能。你希望在 `<App/>` 组件中使用 `<FancyButton/>`。但是，如何在两者之间进行通信呢？
 
-从父组件向子组件传递状态是很简单的。在[组件和属性](./03_components.md)的内容中，我们已经介绍了一些相关内容。基本上，如果你想让父组件与子组件通信，可以将 [`ReadSignal`](https://docs.rs/leptos/latest/leptos/reactive/signal/struct.ReadSignal.html)、[`Signal`](https://docs.rs/leptos/latest/leptos/reactive/wrappers/read/struct.Signal.html) 或 [`MaybeSignal`](https://docs.rs/leptos/latest/leptos/reactive/wrappers/read/enum.MaybeSignal.html) 作为属性(Prop)传递给子组件。
+从父组件向子组件传递状态是很简单的。在[组件和属性](./03_components.md)的内容中，我们已经介绍了一些相关内容。基本上，如果你想让父组件与子组件通信，可以将 [`ReadSignal`](https://docs.rs/leptos/latest/leptos/reactive/signal/struct.ReadSignal.html)或[`Signal`](https://docs.rs/leptos/latest/leptos/reactive/wrappers/read/struct.Signal.html) 作为属性(Prop)传递给子组件。
 
 但是反过来呢？如何让子组件将事件或状态变化的通知发送回父组件？
 
@@ -220,6 +220,8 @@ pub fn ButtonD() -> impl IntoView {
 与 `<ButtonA/>` 中的警告相同：传递 `WriteSignal` 时要谨慎，因为它允许你从代码中的任意部分修改状态。但是，如果小心使用，这可能是 Leptos 中最有效的全局状态管理技术之一：只需在需要状态的最高层次提供它，并在较低层次的任意位置使用它。
 
 这种方法没有性能上的缺点。因为你传递的是一个细粒度的响应式信号，所以在更新时，中间的组件（如 `<Layout/>` 和 `<Content/>`）_不会发生任何变化_。你实际上是在 `<ButtonD/>` 和 `<App/>` 之间直接通信。事实上——这就是细粒度响应式的强大之处——你是在 `<ButtonD/>` 中的按钮点击事件和 `<App/>` 中的单个文本节点之间直接通信。这种通信方式使得组件本身看起来几乎不存在。而实际上……在运行时，它们确实不存在。它本质上只是信号与响应效果的组合，从头到尾都如此。
+
+请注意，这种方法做出了一个重要的权衡：在 `provide_context` 和 `use_context` 之间，你不再拥有类型安全性。在子组件中接收正确的上下文变成了一个运行时检查（参见 `use_context.expect(...)`）。在重构时，编译器不会像早期的方法那样为你提供指导。
 
 ```admonish sandbox title="Live example" collapsible=true
 

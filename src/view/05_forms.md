@@ -135,7 +135,7 @@ let on_submit = move |ev: SubmitEvent| {
         // 这意味着我们可以调用 `HtmlInputElement::value()`
         // 来获取输入框的当前值
         .value();
-    set_name(value);
+    set_name.set(value);
 };
 ```
 
@@ -178,7 +178,7 @@ let (value, set_value) = signal(0i32);
 view! {
   <select
     on:change:target=move |ev| {
-      set_value(ev.target().value().parse().unwrap());
+      set_value.set(ev.target().value().parse().unwrap());
     }
     prop:value=move || value.get().to_string()
   >

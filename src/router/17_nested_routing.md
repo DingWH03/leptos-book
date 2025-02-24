@@ -70,10 +70,10 @@
 
 ```rust
 <Routes>
-  <Route path="/users" view=Users>
-    <Route path=":id" view=UserProfile/>
-    <Route path="" view=NoUser/>
-  </Route>
+  <ParentRoute path=path!("/users") view=Users>
+    <Route path=path!(":id") view=UserProfile/>
+    <Route path=path!("") view=NoUser/>
+  </ParentRoute>
 </Routes>
 ```
 

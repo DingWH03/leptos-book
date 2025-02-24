@@ -53,7 +53,7 @@ pub fn App() -> impl IntoView {
         <For
             each=move || data.get()
             key=|state| state.key.clone()
-            let:child
+            let(child)
         >
             <p>{child.value}</p>
         </For>
@@ -61,10 +61,20 @@ pub fn App() -> impl IntoView {
 }
 ```
 
-> 注意这里的 `let:child` 语法。在上一章中，我们通过 `children` 属性介绍了 `<For/>`。实际上，我们可以直接在 `<For/>` 组件的子节点中创建该值，而无需跳出 `view!` 宏。`let:child` 与 `<p>{child.value}</p>` 等价于：
+> 注意这里的 `let(child)` 语法。在上一章中，我们通过 `children` 属性介绍了 `<For/>`。实际上，我们可以直接在 `<For/>` 组件的子节点中创建该值，而无需跳出 `view!` 宏。`let(child)` 与 `<p>{child.value}</p>` 等价于：
 >
 > ```rust
 > children=|child| view! { <p>{child.value}</p> }
+> ```
+>
+> 为方便起见，您还可以选择对数据模式进行重组：
+>
+> ```rust
+> <For
+>     each=move || data.get()
+>     key=|state| state.key.clone()
+>     let(DatabaseEntry { key, value })
+> >
 > ```
 
 当你点击 `Update Values` 按钮时……什么都没有发生。或者更确切地说：信号确实更新了，新值也被记录了，但每行的 `{child.value}` 并未更新。
@@ -89,7 +99,7 @@ pub fn App() -> impl IntoView {
 <For
     each=move || data.get()
     key=|state| (state.key.clone(), state.value)
-    let:child
+    let(child)
 >
     <p>{child.value}</p>
 </For>
@@ -154,7 +164,7 @@ pub fn App() -> impl IntoView {
         <For
             each=move || data.get()
             key=|state| state.key.clone()
-            let:child
+            let(child)
         >
             <p>{child.value}</p>
         </For>
@@ -312,6 +322,9 @@ pub fn App() -> impl IntoView {
     view! {
         // 点击按钮时更新每一行的值，将其翻倍
         <button on:click=move |_| {
+            // 允许遍历可遍历存储字段中的条目
+            use reactive_stores::StoreFieldIterator;
+
             // 调用 rows() 访问行列表
             for row in data.rows().iter_unkeyed() {
                 *row.value().write() *= 2;

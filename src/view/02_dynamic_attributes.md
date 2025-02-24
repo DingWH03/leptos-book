@@ -76,7 +76,7 @@ class=("button-20", move || count.get() % 2 == 1)
 元组语法还允许通过将数组作为第一个元组元素来指定在单个条件下应用多个类。
 
 ```rust
-class=(["button-20", "rounded"], move || count() % 2 == 1)
+class=(["button-20", "rounded"], move || count.get() % 2 == 1)
 ```
 
 ## 动态样式(style)

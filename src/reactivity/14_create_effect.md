@@ -125,7 +125,7 @@ Effect::new(move |prev_value| {
 
 除了 `Effect::new()`，Leptos 还提供了 [`Effect::watch()`](https://docs.rs/leptos/latest/leptos/reactive/effect/struct.Effect.html#method.watch) 方法，可以通过显式传递值集来分离追踪和响应变化。
 
-`watch` 的第一个参数是反应式追踪的，第二个参数不是。每当 `deps` 参数中的反应式值发生变化时，`callback` 就会运行。`watch` 返回一个 `Effect`，可以通过 `.stop()` 停止追踪依赖。
+`watch` 有三个参数。其中`deps`参数是反应式追踪的，然而`callback`和`immediate`不是。每当 `deps` 参数中的反应式值发生变化时，`callback` 就会运行。如果`immediate`的值是`false`，callback只有在检测到任何在`deps`中访问的信号发生第一次变化后才会运行。`watch` 返回一个 `Effect`，可以通过 `.stop()` 停止追踪依赖。
 
 ```rust
 let (num, set_num) = signal(0);

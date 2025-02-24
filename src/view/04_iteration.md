@@ -55,11 +55,11 @@ let counters = (1..=length).map(|idx| RwSignal::new(idx));
 // 每个项目管理一个响应式视图
 // 但列表本身永远不会改变
 let counter_buttons = counters
-    .map(|(count, set_count)| {
+    .map(|count| {
         view! {
             <li>
                 <button
-                    on:click=move |_| *set_count.write() += 1
+                    on:click=move |_| *count.write() += 1
                 >
                     {count}
                 </button>
